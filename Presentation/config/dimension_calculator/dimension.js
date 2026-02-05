@@ -1,0 +1,4 @@
+const SLIDE_WIDTH = 720;
+const SLIDE_HEIGHT = 405;
+
+export { SLIDE_WIDTH, SLIDE_HEIGHT };

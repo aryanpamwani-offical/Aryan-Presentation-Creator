@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Define directories
-const previewDir = path.resolve('previews'); 
+const previewDir = path.resolve('previews`'); 
 const codeFile = 'code.json';
 
 // Ensure the preview directory exists
