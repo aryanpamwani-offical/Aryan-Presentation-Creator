@@ -5,7 +5,7 @@
     "title": "Git Pull",
     "codeblock": "git pull origin main",
     "language": "any",
-    "imageUrl": "https://drive.google.com/uc?id=1sBvzlQUZqJWjAEe8a6rvwrr3ebRFvm-K&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=18008wiuDGagGBEly8kMTmOTjVGtTuH9n&export=download"
   },
   {
     "id": 1,
@@ -13,7 +13,7 @@
     "title": "Git Fetch",
     "codeblock": "git fetch origin",
     "language": "any",
-    "imageUrl": "https://drive.google.com/uc?id=1g7tcs-1AS4irNa5eu-GlYb7fHXd0QIp6&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=12Wy7VvltmfCWoT_4wapigXk8LCzl_qX2&export=download"
   },
   {
     "id": 2,
@@ -21,6 +21,6 @@
     "title": "Git Merge",
     "codeblock": "git merge feature-branch",
     "language": "any",
-    "imageUrl": "https://drive.google.com/uc?id=1iwZPmUi3V4xDDlXhw0ArAaCyhjCMw7ZM&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=1jxa9fbav1A9LCBWpG5-T0tmYvtUU1tJN&export=download"
   }
 ]
