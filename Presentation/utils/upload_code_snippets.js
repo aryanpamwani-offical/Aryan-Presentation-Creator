@@ -3,6 +3,7 @@ import path from 'path';
 import uploadImageToDrive from '../config/drive/google_drive.js';
 import AuthWithGoogle from '../config/auth/google-oauth.js';
 import { generateAllSnippets } from './generate_code_snippet.js';
+import { compressImage } from './image_compress_utils.js';
 
 const uploadCodeSnippets = async (options = {}) => {
     const { regenerate = false, theme, font, omitBackground } = options;
@@ -93,8 +94,26 @@ const uploadCodeSnippets = async (options = {}) => {
 
             console.log(`Uploading ${fileName}...`);
 
-            // Upload directly without compression
-            const imageUrl = await uploadImageToDrive(authClient, filePath);
+            // Compress image
+            const tempDir = path.join(baseImageDir, 'temp_storage');
+
+            // Ensure temp_storage exists
+            if (!fs.existsSync(tempDir)) {
+                fs.mkdirSync(tempDir, { recursive: true });
+            }
+
+            const compressedPath = await compressImage(filePath, tempDir);
+            let uploadPath = filePath;
+
+            if (compressedPath) {
+                console.log(`Using compressed image for upload: ${compressedPath}`);
+                uploadPath = compressedPath;
+            } else {
+                console.warn(`Compression failed, falling back to original image: ${filePath}`);
+            }
+
+            // Upload to Google Drive
+            const imageUrl = await uploadImageToDrive(authClient, uploadPath);
 
             if (imageUrl) {
                 uploadedSnippets.push({
@@ -113,6 +132,30 @@ const uploadCodeSnippets = async (options = {}) => {
             console.log(`Successfully saved ${uploadedSnippets.length} snippets to uploaded_code_snippets.json`);
         } else {
             console.log('No snippets were uploaded or found.');
+        }
+
+        // --- Cleanup ---
+        try {
+            const tempStorageDir = path.join(baseImageDir, 'temp_storage');
+            
+            // Delete generated slide images
+            if (fs.existsSync(baseImageDir) && fs.existsSync(tempStorageDir)) {
+                const files = fs.readdirSync(baseImageDir);
+                const tempFiles = fs.readdirSync(tempStorageDir);
+                for (const file of files) {
+                    if (file.startsWith('slide-') && (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'))) {
+                        fs.unlinkSync(path.join(baseImageDir, file));
+                    }
+                }
+                for (const file of tempFiles) {
+                    if (file.startsWith('slide-') && (file.endsWith('.png') || file.endsWith('.jpg') || file.endsWith('.jpeg'))) {
+                        fs.unlinkSync(path.join(tempStorageDir, file));
+                    }
+                }
+                console.log(`Deleted generated slide images in ${baseImageDir}`);
+            }
+        } catch (err) {
+            console.warn('Error during cleanup:', err);
         }
 
         return uploadedSnippetsMap;

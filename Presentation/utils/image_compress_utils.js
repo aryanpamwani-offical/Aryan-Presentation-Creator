@@ -44,4 +44,32 @@ const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code') => {
   }
 };
 
+export const compressImage = async (inputPath, outputDir) => {
+  try {
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const fileName = path.basename(inputPath);
+    const outputPath = path.join(outputDir, fileName);
+
+    const image = sharp(inputPath);
+    const metadata = await image.metadata();
+
+    if (metadata.format === 'jpeg' || metadata.format === 'jpg') {
+      image.jpeg({ quality: 80 });
+    } else if (metadata.format === 'png') {
+      image.png({ compressionLevel: 9, palette: true });
+    }
+
+    await image.toFile(outputPath);
+
+    console.log(`Image compressed and saved at: ${outputPath}`);
+    return outputPath;
+  } catch (err) {
+    console.error('Error compressing image:', err);
+    return null;
+  }
+};
+
 export default resizeAndSaveImage;

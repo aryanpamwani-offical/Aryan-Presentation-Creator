@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import AuthWithGoogle from "../config/auth/google-oauth.js";
-import buildPresentation, { slidesData } from "./skillbuilder.js";
+import buildPresentation from "./skillbuilder.js";
+import { slidesData } from "./slide_builders/slideData.js";
 
 
 const createSlides = async () => {
