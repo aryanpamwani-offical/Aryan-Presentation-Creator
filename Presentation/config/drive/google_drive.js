@@ -1,3 +1,7 @@
+import { existsSync, createReadStream } from 'fs';
+import path from 'path';
+import { google } from 'googleapis';
+
 const uploadImageToDrive = async(auth, filePath)=> {
   try {
     if (!existsSync(filePath)) return null;
@@ -9,7 +13,7 @@ const uploadImageToDrive = async(auth, filePath)=> {
     });
     await drive.permissions.create({
       fileId: file.data.id,
-      requestBody: { role: 'editor', type: 'anyone' },
+      requestBody: { role: 'writer', type: 'anyone' },
     });
     const result = await drive.files.get({
       fileId: file.data.id,

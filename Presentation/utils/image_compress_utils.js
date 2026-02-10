@@ -6,10 +6,10 @@ import sharp from 'sharp';
 export const IMAGE_CONFIG = {
   Code: { height: 6.95, width: 3.45 },
   Title: { height: 4.1, width: 4.1 },
-  
+
 };
 
-export const PT_UNIT = 28;
+export const PT_UNIT = 144;
 export const convertToPt = (value) => Math.round(value * PT_UNIT);
 
 
@@ -37,8 +37,10 @@ const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code') => {
       .toFile(outputPath);
 
     console.log(`Image (${slideType}) saved securely at: ${outputPath}`);
+    return outputPath;
   } catch (err) {
     console.error('Error resizing image:', err);
+    return null;
   }
 };
 

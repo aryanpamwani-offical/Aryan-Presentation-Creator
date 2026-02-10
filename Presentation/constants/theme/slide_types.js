@@ -26,12 +26,12 @@ const slideTypes = {
         "container": { "alignItems": top_align, "justifyContent": justify_center, "padding": concept_Padding }
       }
     },
-    "code": {
+    "screenshot_tutorial": {
       "layout": {
-        "container": { "alignItems": top_align, "justifyContent": justify_center, "padding": code_Padding }
+        "container": { "alignItems": top_align, "justifyContent": justify_flex_start, "padding": screenshot_tutorial_Padding }
       }
     },
-    "screenshot_tutorial": {
+    "code": {
       "layout": {
         "container": { "alignItems": top_align, "justifyContent": justify_flex_start, "padding": screenshot_tutorial_Padding }
       }

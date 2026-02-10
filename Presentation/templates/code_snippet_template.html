@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Snippet</title>
+    <link rel="stylesheet" href="./snippet_styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="snippet-container" data-theme="{{THEME}}">
+        <div class="snippet-window">
+            <!-- Window Controls -->
+            <div class="window-header">
+                <div class="traffic-lights">
+                    <span class="light close"></span>
+                    <span class="light minimize"></span>
+                    <span class="light maximize"></span>
+                </div>
+                <div class="snippet-title">{{TITLE}}</div>
+            </div>
+
+            <!-- Code Content -->
+            <div class="code-wrapper">
+                <pre><code class="language-{{LANGUAGE}}">{{CODE}}</code></pre>
+            </div>
+        </div>
+    </div>
+
+
+</body>
+
+</html>

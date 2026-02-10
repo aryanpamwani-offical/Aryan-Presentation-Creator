@@ -12,8 +12,9 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "googleapis": "^105.0.0",
+    "highlight.js": "^11.11.1",
     "open": "^11.0.0",
-    "rayso": "^1.2.1",
+    "puppeteer": "^24.37.2",
     "sharp": "^0.34.5"
   }
 }

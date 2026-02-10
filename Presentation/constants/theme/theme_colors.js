@@ -15,7 +15,18 @@ const THEME_COLORS = {
         red: 0.26,
         green: 0.52,
         blue: 0.96
+    },
+    secondaryText: {
+        red: 0.6,
+        green: 0.6,
+        blue: 0.6
+    },
+
+    summaryAccent: {
+        red: 0.259,
+        green: 0.522,
+        blue: 0.961
     }
 }
-    
+
 export default THEME_COLORS;

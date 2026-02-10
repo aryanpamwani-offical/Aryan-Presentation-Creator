@@ -1,0 +1,26 @@
+[
+  {
+    "id": 0,
+    "slide_number": 5,
+    "title": "Git Pull",
+    "codeblock": "git pull origin main",
+    "language": "any",
+    "imageUrl": "https://drive.google.com/uc?id=17ez9N-bGpYkvj57xYG0bNc6QzUIE_dxa&export=download"
+  },
+  {
+    "id": 1,
+    "slide_number": 7,
+    "title": "Git Fetch",
+    "codeblock": "git fetch origin",
+    "language": "any",
+    "imageUrl": "https://drive.google.com/uc?id=1HQH27mQJmp9p7OeYtsng65w1RarXKslY&export=download"
+  },
+  {
+    "id": 2,
+    "slide_number": 12,
+    "title": "Git Merge",
+    "codeblock": "git merge feature-branch",
+    "language": "any",
+    "imageUrl": "https://drive.google.com/uc?id=1TFUkZR80ygdmXlVnjxoMWdnEydEgeYay&export=download"
+  }
+]

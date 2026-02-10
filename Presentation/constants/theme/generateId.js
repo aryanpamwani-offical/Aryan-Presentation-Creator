@@ -10,28 +10,33 @@ export const createSlideIds = (slideType, bulletCount = 0) => {
   const elements = {};
 
   // Define element keys based on slide type
-  if (slideType === 'Concept') {
+  // Define element keys based on slide type
+  if (slideType === 'Concept' || slideType === 'concept') {
     elements.title = generateId('CON_TITLE');
-    elements.description = generateId('CON_DESC');
-  } 
-  else if (slideType === 'Module') {
-    elements.moduleLabel = generateId('MOD_LBL');
+    elements.body = generateId('CON_BODY');
+    elements.image = generateId('CON_IMG');
+  }
+  else if (slideType === 'Module' || slideType === 'module_intro') {
     elements.title = generateId('MOD_TITLE');
-    // Generate an ID for each bullet point
-    elements.bullets = Array.from({ length: bulletCount }).map((_, i) => generateId(`MOD_BULLET_${i}`));
-  } 
-  else if (slideType === 'Code') {
-    elements.image = generateId('CODE_IMG');
-    elements.description = generateId('CODE_DESC');
-  } 
-  else if (slideType === 'Title') {
+    elements.body = generateId('MOD_BODY'); // For bullets or text
+  }
+  else if (slideType === 'Code' || slideType === 'code' || slideType === 'screenshot_tutorial') {
+    elements.title = generateId('SS_TITLE');
+    elements.image = generateId('SS_IMG');
+    elements.caption = generateId('SS_CAPTION');
+  }
+  else if (slideType === 'Notes' || slideType === 'notes') {
+    elements.title = generateId('NOTE_TITLE');
+    elements.body = generateId('NOTE_BODY');
+  }
+  else if (slideType === 'Title' || slideType === 'title') {
     elements.image = generateId('TITLE_IMG');
     elements.title = generateId('TITLE_TXT');
     elements.description = generateId('TITLE_DESC');
-  } 
-  else if (slideType === 'ThankYou') {
-    elements.mainText = generateId('TY_TXT');
+  }
+  else if (slideType === 'ThankYou' || slideType === 'thank_you') {
+    elements.title = generateId('TY_TXT');
   }
 
-return { pageId, elements };
+  return { pageId, elements };
 };  
