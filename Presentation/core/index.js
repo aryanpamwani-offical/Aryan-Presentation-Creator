@@ -35,4 +35,4 @@ const createSlides = async () => {
   }
 }
 
-const slides = await createSlides();
+export default createSlides;
