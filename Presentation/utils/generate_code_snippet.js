@@ -101,20 +101,19 @@ function generateHTML(snippet, options = {}) {
 
 
     // Apply Background Gradient to Container
-    // We need to inject the background class into the snippet-container
-    // If omitBackground is true, we should NOT apply the background gradient
+    // We update {{CONTAINER_CLASS}} based on omitBackground
     const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
 
+    let containerClass = "";
     if (!omitBackground) {
-        html = html.replace('class="snippet-container"', `class="snippet-container ${themeObj.background}"`);
+        // Add padding to show the background gradient
+        containerClass = `${themeObj.background} p-12 rounded-xl`;
     } else {
-        // Ensure no background is applied if transparent is requested
-        // The default class is just 'snippet-container', so we don't need to add anything.
-        // But if there's a default background in CSS, we might need to override it.
-        // Assuming .snippet-container has no background by default or it's transparent.
-        // If we need to force transparent: style="background: transparent;"
-        html = html.replace('class="snippet-container"', `class="snippet-container" style="background: transparent;"`);
+        // Transparent mode: Minimal padding/margin
+        containerClass = "p-1 bg-transparent";
     }
+
+    html = html.replace('{{CONTAINER_CLASS}}', containerClass);
 
     // Handle conditional title
     if (title) {

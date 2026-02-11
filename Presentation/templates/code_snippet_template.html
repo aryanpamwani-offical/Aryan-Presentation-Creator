@@ -13,21 +13,27 @@
 </head>
 
 <body>
-    <div class="snippet-container" data-theme="{{THEME}}">
-        <div class="snippet-window">
+    <div class="snippet-container {{CONTAINER_CLASS}} flex items-stretch justify-stretch relative w-fit h-fit overflow-hidden p-0 m-0"
+        data-theme="{{THEME}}">
+        <div
+            class="snippet-window w-full flex-1 min-w-0 flex flex-col overflow-hidden bg-gray-900/90 backdrop-blur-xl border border-white/10 shadow-2xl rounded-lg">
             <!-- Window Controls -->
-            <div class="window-header">
-                <div class="traffic-lights">
-                    <span class="light close"></span>
-                    <span class="light minimize"></span>
-                    <span class="light maximize"></span>
+            <div
+                class="window-header grid grid-cols-6 gap-3 items-center px-4 py-3 bg-transparent border-b border-white/5">
+                <div class="traffic-lights flex gap-2 col-span-1">
+                    <span class="light close w-3 h-3 rounded-full bg-red-500 shadow-sm"></span>
+                    <span class="light minimize w-3 h-3 rounded-full bg-yellow-400 shadow-sm"></span>
+                    <span class="light maximize w-3 h-3 rounded-full bg-green-500 shadow-sm"></span>
                 </div>
-                <div class="snippet-title">{{TITLE}}</div>
+                <div
+                    class="snippet-title col-span-4 flex justify-center text-gray-400 text-sm font-medium tracking-wide font-sans">
+                    {{TITLE}}
+                </div>
             </div>
 
             <!-- Code Content -->
-            <div class="code-wrapper">
-                <pre><code class="language-{{LANGUAGE}}">{{CODE}}</code></pre>
+            <div class="code-wrapper p-6 overflow-auto bg-transparent">
+                <pre><code class="language-{{LANGUAGE}} text-sm leading-relaxed text-white">{{CODE}}</code></pre>
             </div>
         </div>
     </div>

@@ -47,9 +47,9 @@ body {
     /* height: 100%;  Let it fill container */
     flex: 1;
     min-width: 0;
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(0, 0, 0, 0.75) !important;
     /* Opaque interior (gray-800) */
-    border: 2px solid rgba(107, 114, 128, 0.4);
+    border: 2px solid rgba(107, 114, 128, 0.4) !important;
     border-radius: 0;
     /* Remove radius to fill corners fully or keep? User said NO transparent space */
     /* If we keep radius, the container background (#111827) shows in corners. This is good (no alpha). */
@@ -130,42 +130,16 @@ pre {
 
 code {
     font-family: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, Monaco, monospace !important;
-    color: #ffffff !important;
+    /* Removed color: #ffffff !important; to allow themes to apply */
 }
 
-/* Override all highlight.js color classes to keep everything white */
+/* Base hljs styling - let themes override colors */
 .hljs {
-    color: #ffffff !important;
     background: transparent !important;
 }
 
-.hljs-keyword,
-.hljs-selector-tag,
-.hljs-literal,
-.hljs-section,
-.hljs-link,
-.hljs-subst,
-.hljs-string,
-.hljs-title,
-.hljs-name,
-.hljs-type,
-.hljs-attribute,
-.hljs-symbol,
-.hljs-bullet,
-.hljs-built_in,
-.hljs-addition,
-.hljs-variable,
-.hljs-template-tag,
-.hljs-template-variable {
-    color: #ffffff !important;
-}
+/* Removed all specific .hljs-* color overrides */
 
-.hljs-comment,
-.hljs-quote,
-.hljs-deletion,
-.hljs-meta {
-    color: #9ca3af !important;
-}
 
 
 /* Scrollbar styling */

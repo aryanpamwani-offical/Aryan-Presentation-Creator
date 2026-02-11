@@ -1,257 +1,257 @@
 [
-  {
-    "id": 0,
-    "slide_number": 1,
-    "type": "title",
-    "title": "Mastering CSS Flexbox Layouts",
-    "localImagePath": "/css.png",
-    "imageUrl": "https://drive.google.com/uc?id=1Q-xa7CkSYXCIjuSu8d2aDgHH3TDcF6QH&export=download",
-    "subtitle": "A Practical Guide to Flexible Web Design"
-  },
-  {
-    "id": 1,
-    "slide_number": 2,
-    "type": "module_intro",
-    "moduleLabel": "Module 1: Flexbox Basics",
-    "title": "Understanding Flex Containers",
-    "bullets": [
-      "Define a flex container using display:flex",
-      "Establish main and cross axes",
-      "Enable flexible layout for child items"
-    ]
-  },
-  {
-    "id": 2,
-    "slide_number": 3,
-    "type": "concept",
-    "title": "Flex Container",
-    "body": "A flex container establishes a flexible formatting context for its direct children. It activates the flex layout algorithm."
-  },
-  {
-    "id": 3,
-    "slide_number": 4,
-    "type": "code",
-    "title": "Container Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-4.png",
-    "codeblock": "/* Set container as flex */\ndisplay:flex;\n/* Define direction */\nflex-direction:row;\n/* Allow wrapping */\nflex-wrap:wrap;\n/* Align items along cross axis */\nalign-items:center;\n/* Distribute space along main axis */\njustify-content:space-between;\n/* Optional gap between items */\ngap:1rem;\n/* End of container setup */",
-    "codeTitle": "",
-    "description": "Basic flex container declaration with common properties.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1OmElQs215-Z09CZ9VfG2yCzAGo4akRJB&export=download"
-  },
-  {
-    "id": 4,
-    "slide_number": 5,
-    "type": "concept",
-    "title": "Flex Direction",
-    "body": "Flex direction determines the orientation of the main axis. Options include row, row-reverse, column, and column-reverse."
-  },
-  {
-    "id": 5,
-    "slide_number": 6,
-    "type": "code",
-    "title": "Direction Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-6.png",
-    "codeblock": "/* Horizontal layout */\nflex-direction:row;\n/* Reverse horizontal */\nflex-direction:row-reverse;\n/* Vertical layout */\nflex-direction:column;\n/* Reverse vertical */\nflex-direction:column-reverse;\n/* Direction configuration complete */\n/* End of direction settings */",
-    "codeTitle": "",
-    "description": "Switching main axis orientation using flex-direction.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=13fGwFtL512gEEsw8XmH3f6FkW2m-36-B&export=download"
-  },
-  {
-    "id": 6,
-    "slide_number": 7,
-    "type": "concept",
-    "title": "Flex Wrap",
-    "body": "Flex wrap controls whether items stay on a single line or wrap onto multiple lines when space is limited."
-  },
-  {
-    "id": 7,
-    "slide_number": 8,
-    "type": "code",
-    "title": "Wrap Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-8.png",
-    "codeblock": "/* Keep items on one line */\nflex-wrap:nowrap;\n/* Allow items to wrap */\nflex-wrap:wrap;\n/* Reverse wrap order */\nflex-wrap:wrap-reverse;\n/* Wrapping behavior defined */\n/* Adjust based on container width */\n/* Wrap configuration complete */\n/* End of wrap settings */",
-    "codeTitle": "",
-    "description": "Managing line breaks with flex-wrap property.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1tXKPjcgPdW7IAJmNduhT_J9HD4m88WPJ&export=download"
-  },
-  {
-    "id": 8,
-    "slide_number": 9,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "Flex container activates flex layout",
-      "flex-direction sets main axis orientation",
-      "flex-wrap determines line breaking"
-    ]
-  },
-  {
-    "id": 9,
-    "slide_number": 10,
-    "type": "module_intro",
-    "moduleLabel": "Module 2: Alignment Techniques",
-    "title": "Aligning Items in Flexbox",
-    "bullets": [
-      "Control distribution along main axis",
-      "Control alignment on cross axis",
-      "Combine both for complex layouts"
-    ]
-  },
-  {
-    "id": 10,
-    "slide_number": 11,
-    "type": "concept",
-    "title": "Justify Content",
-    "body": "Justify-content distributes free space along the main axis, affecting how items are positioned horizontally (or vertically)."
-  },
-  {
-    "id": 11,
-    "slide_number": 12,
-    "type": "code",
-    "title": "Justify Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-12.png",
-    "codeblock": "/* Pack items at start */\njustify-content:flex-start;\n/* Pack items at end */\njustify-content:flex-end;\n/* Center items */\njustify-content:center;\n/* Even space between items */\njustify-content:space-between;\n/* Even space around items */\njustify-content:space-around;",
-    "codeTitle": "",
-    "description": "Various ways to align items along the main axis.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1nB0JjNKjFANfhO7IOVL4w46WuffSABWy&export=download"
-  },
-  {
-    "id": 12,
-    "slide_number": 13,
-    "type": "concept",
-    "title": "Align Items",
-    "body": "Align-items aligns flex items on the cross axis within a single line, providing vertical (or horizontal) centering."
-  },
-  {
-    "id": 13,
-    "slide_number": 14,
-    "type": "code",
-    "title": "Align Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-14.png",
-    "codeblock": "/* Align to start of cross axis */\nalign-items:flex-start;\n/* Align to end */\nalign-items:flex-end;\n/* Center alignment */\nalign-items:center;\n/* Stretch to fill */\nalign-items:stretch;\n/* Baseline alignment */\nalign-items:baseline;",
-    "codeTitle": "",
-    "description": "Cross‑axis alignment options for flex items.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1rGDe1pls5UwK8YbV7uTRhX1K-rcrmwQ2&export=download"
-  },
-  {
-    "id": 14,
-    "slide_number": 15,
-    "type": "concept",
-    "title": "Align Content",
-    "body": "Align-content works like align-items but for multi‑line flex containers, distributing space between lines."
-  },
-  {
-    "id": 15,
-    "slide_number": 16,
-    "type": "code",
-    "title": "Content Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-16.png",
-    "codeblock": "/* Align lines at start */\nalign-content:flex-start;\n/* Align lines at end */\nalign-content:flex-end;\n/* Center lines */\nalign-content:center;\n/* Space between lines */\nalign-content:space-between;\n/* Space around lines */\nalign-content:space-around;\n/* Stretch lines */\nalign-content:stretch;",
-    "codeTitle": "",
-    "description": "Managing spacing between rows when flex-wrap is enabled.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1W8exdEkPj-lvswdylu58BAHli6G9aS52&export=download"
-  },
-  {
-    "id": 16,
-    "slide_number": 17,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "justify-content manages main‑axis spacing",
-      "align-items handles cross‑axis within a line",
-      "align-content distributes space between lines"
-    ]
-  },
-  {
-    "id": 17,
-    "slide_number": 18,
-    "type": "module_intro",
-    "moduleLabel": "Module 3: Flex Item Properties",
-    "title": "Controlling Individual Flex Items",
-    "bullets": [
-      "Adjust size growth and shrinkage",
-      "Set basis for initial size",
-      "Reorder items without HTML changes"
-    ]
-  },
-  {
-    "id": 18,
-    "slide_number": 19,
-    "type": "concept",
-    "title": "Flex Grow",
-    "body": "Flex-grow defines how much a flex item will expand relative to others when extra space is available."
-  },
-  {
-    "id": 19,
-    "slide_number": 20,
-    "type": "code",
-    "title": "Grow Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-20.png",
-    "codeblock": "/* No growth */\nflex-grow:0;\n/* Equal growth */\nflex-grow:1;\n/* Double growth compared to siblings */\nflex-grow:2;\n/* Multiple items with different factors */\n.item-a{flex-grow:1;}\n.item-b{flex-grow:3;}\n/* Growth factors applied */",
-    "codeTitle": "",
-    "description": "Using flex-grow to allocate remaining space.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=13x60wsKHoKO3rKNWfkxVgPu4-9FYWUkq&export=download"
-  },
-  {
-    "id": 20,
-    "slide_number": 21,
-    "type": "concept",
-    "title": "Flex Shrink",
-    "body": "Flex-shrink determines how a flex item reduces its size when the container becomes too small."
-  },
-  {
-    "id": 21,
-    "slide_number": 22,
-    "type": "code",
-    "title": "Shrink Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-22.png",
-    "codeblock": "/* No shrinking */\nflex-shrink:0;\n/* Default shrinking */\nflex-shrink:1;\n/* Faster shrinking */\nflex-shrink:2;\n/* Different shrink factors */\n.item-x{flex-shrink:1;}\n.item-y{flex-shrink:3;}\n/* Shrink factors applied */",
-    "codeTitle": "",
-    "description": "Controlling reduction of item size under overflow.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1VUSlCPvoP1D9YrxcYGouQ9y-FYsh157i&export=download"
-  },
-  {
-    "id": 22,
-    "slide_number": 23,
-    "type": "concept",
-    "title": "Flex Basis & Order",
-    "body": "Flex-basis sets the initial main‑axis size before free space distribution. Order changes visual ordering without altering HTML."
-  },
-  {
-    "id": 23,
-    "slide_number": 24,
-    "type": "code",
-    "title": "Basis Code",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-24.png",
-    "codeblock": "/* Default basis (auto) */\nflex-basis:auto;\n/* Fixed basis */\nflex-basis:200px;\n/* Percentage basis */\nflex-basis:30%;\n/* Change visual order */\norder:2; /* Moves item after items with order 1 */\n/* Basis and order finalized */\n/* End of basis settings */",
-    "codeTitle": "",
-    "description": "Defining starting size and reordering items.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1a9omXd7F_7U7xD35BZrSUYov9p6PwXwg&export=download"
-  },
-  {
-    "id": 24,
-    "slide_number": 25,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "flex-grow allocates extra space",
-      "flex-shrink reduces size on overflow",
-      "flex-basis sets initial size; order reorders items"
-    ]
-  },
-  {
-    "id": 25,
-    "slide_number": 26,
-    "type": "thank_you",
-    "title": "Thank You"
-  }
+    {
+        "id": 0,
+        "slide_number": 1,
+        "type": "title",
+        "title": "Mastering CSS Flexbox Layouts",
+        "localImagePath": "/css.png",
+        "imageUrl": "https://drive.google.com/uc?id=1Q-xa7CkSYXCIjuSu8d2aDgHH3TDcF6QH&export=download",
+        "subtitle": "A Practical Guide to Flexible Web Design"
+    },
+    {
+        "id": 1,
+        "slide_number": 2,
+        "type": "module_intro",
+        "moduleLabel": "Module 1: Flexbox Basics",
+        "title": "Understanding Flex Containers",
+        "bullets": [
+            "Define a flex container using display:flex",
+            "Establish main and cross axes",
+            "Enable flexible layout for child items"
+        ]
+    },
+    {
+        "id": 2,
+        "slide_number": 3,
+        "type": "concept",
+        "title": "Flex Container",
+        "body": "A flex container establishes a flexible formatting context for its direct children. It activates the flex layout algorithm."
+    },
+    {
+        "id": 3,
+        "slide_number": 4,
+        "type": "code",
+        "title": "Container Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-4.png",
+        "codeblock": "/* Set container as flex */\ndisplay:flex;\n/* Define direction */\nflex-direction:row;\n/* Allow wrapping */\nflex-wrap:wrap;\n/* Align items along cross axis */\nalign-items:center;\n/* Distribute space along main axis */\njustify-content:space-between;\n/* Optional gap between items */\ngap:1rem;\n/* End of container setup */",
+        "codeTitle": "",
+        "description": "Basic flex container declaration with common properties.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1AMsx5hI7K85UUzfXUju6GaaR6mC6Ckxy&export=download"
+    },
+    {
+        "id": 4,
+        "slide_number": 5,
+        "type": "concept",
+        "title": "Flex Direction",
+        "body": "Flex direction determines the orientation of the main axis. Options include row, row-reverse, column, and column-reverse."
+    },
+    {
+        "id": 5,
+        "slide_number": 6,
+        "type": "code",
+        "title": "Direction Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-6.png",
+        "codeblock": "/* Horizontal layout */\nflex-direction:row;\n/* Reverse horizontal */\nflex-direction:row-reverse;\n/* Vertical layout */\nflex-direction:column;\n/* Reverse vertical */\nflex-direction:column-reverse;\n/* Direction configuration complete */\n/* End of direction settings */",
+        "codeTitle": "",
+        "description": "Switching main axis orientation using flex-direction.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1l6UtE6t4vC6tI_4RE4AqjgSxoCJ0pXB1&export=download"
+    },
+    {
+        "id": 6,
+        "slide_number": 7,
+        "type": "concept",
+        "title": "Flex Wrap",
+        "body": "Flex wrap controls whether items stay on a single line or wrap onto multiple lines when space is limited."
+    },
+    {
+        "id": 7,
+        "slide_number": 8,
+        "type": "code",
+        "title": "Wrap Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-8.png",
+        "codeblock": "/* Keep items on one line */\nflex-wrap:nowrap;\n/* Allow items to wrap */\nflex-wrap:wrap;\n/* Reverse wrap order */\nflex-wrap:wrap-reverse;\n/* Wrapping behavior defined */\n/* Adjust based on container width */\n/* Wrap configuration complete */\n/* End of wrap settings */",
+        "codeTitle": "",
+        "description": "Managing line breaks with flex-wrap property.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1q1SZC8Y5ngDE7rneR_x-aQ9Pzl0EcPBM&export=download"
+    },
+    {
+        "id": 8,
+        "slide_number": 9,
+        "type": "notes",
+        "title": "Summary",
+        "bullets": [
+            "Flex container activates flex layout",
+            "flex-direction sets main axis orientation",
+            "flex-wrap determines line breaking"
+        ]
+    },
+    {
+        "id": 9,
+        "slide_number": 10,
+        "type": "module_intro",
+        "moduleLabel": "Module 2: Alignment Techniques",
+        "title": "Aligning Items in Flexbox",
+        "bullets": [
+            "Control distribution along main axis",
+            "Control alignment on cross axis",
+            "Combine both for complex layouts"
+        ]
+    },
+    {
+        "id": 10,
+        "slide_number": 11,
+        "type": "concept",
+        "title": "Justify Content",
+        "body": "Justify-content distributes free space along the main axis, affecting how items are positioned horizontally (or vertically)."
+    },
+    {
+        "id": 11,
+        "slide_number": 12,
+        "type": "code",
+        "title": "Justify Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-12.png",
+        "codeblock": "/* Pack items at start */\njustify-content:flex-start;\n/* Pack items at end */\njustify-content:flex-end;\n/* Center items */\njustify-content:center;\n/* Even space between items */\njustify-content:space-between;\n/* Even space around items */\njustify-content:space-around;",
+        "codeTitle": "",
+        "description": "Various ways to align items along the main axis.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1cKC1Ipof-LCEfrA9vb-FAIHw8TbowUN7&export=download"
+    },
+    {
+        "id": 12,
+        "slide_number": 13,
+        "type": "concept",
+        "title": "Align Items",
+        "body": "Align-items aligns flex items on the cross axis within a single line, providing vertical (or horizontal) centering."
+    },
+    {
+        "id": 13,
+        "slide_number": 14,
+        "type": "code",
+        "title": "Align Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-14.png",
+        "codeblock": "/* Align to start of cross axis */\nalign-items:flex-start;\n/* Align to end */\nalign-items:flex-end;\n/* Center alignment */\nalign-items:center;\n/* Stretch to fill */\nalign-items:stretch;\n/* Baseline alignment */\nalign-items:baseline;",
+        "codeTitle": "",
+        "description": "Cross‑axis alignment options for flex items.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1h9VnhpyruuG2PcjPUXwdhlVGQaw1xhZo&export=download"
+    },
+    {
+        "id": 14,
+        "slide_number": 15,
+        "type": "concept",
+        "title": "Align Content",
+        "body": "Align-content works like align-items but for multi‑line flex containers, distributing space between lines."
+    },
+    {
+        "id": 15,
+        "slide_number": 16,
+        "type": "code",
+        "title": "Content Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-16.png",
+        "codeblock": "/* Align lines at start */\nalign-content:flex-start;\n/* Align lines at end */\nalign-content:flex-end;\n/* Center lines */\nalign-content:center;\n/* Space between lines */\nalign-content:space-between;\n/* Space around lines */\nalign-content:space-around;\n/* Stretch lines */\nalign-content:stretch;",
+        "codeTitle": "",
+        "description": "Managing spacing between rows when flex-wrap is enabled.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1WLxIOA87PQOiwtwTK3EUZ9ALF3qwlKNt&export=download"
+    },
+    {
+        "id": 16,
+        "slide_number": 17,
+        "type": "notes",
+        "title": "Summary",
+        "bullets": [
+            "justify-content manages main‑axis spacing",
+            "align-items handles cross‑axis within a line",
+            "align-content distributes space between lines"
+        ]
+    },
+    {
+        "id": 17,
+        "slide_number": 18,
+        "type": "module_intro",
+        "moduleLabel": "Module 3: Flex Item Properties",
+        "title": "Controlling Individual Flex Items",
+        "bullets": [
+            "Adjust size growth and shrinkage",
+            "Set basis for initial size",
+            "Reorder items without HTML changes"
+        ]
+    },
+    {
+        "id": 18,
+        "slide_number": 19,
+        "type": "concept",
+        "title": "Flex Grow",
+        "body": "Flex-grow defines how much a flex item will expand relative to others when extra space is available."
+    },
+    {
+        "id": 19,
+        "slide_number": 20,
+        "type": "code",
+        "title": "Grow Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-20.png",
+        "codeblock": "/* No growth */\nflex-grow:0;\n/* Equal growth */\nflex-grow:1;\n/* Double growth compared to siblings */\nflex-grow:2;\n/* Multiple items with different factors */\n.item-a{flex-grow:1;}\n.item-b{flex-grow:3;}\n/* Growth factors applied */",
+        "codeTitle": "",
+        "description": "Using flex-grow to allocate remaining space.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1_VZhLGCwQ_DpCiiM0NyYU_i3wC6ByRYN&export=download"
+    },
+    {
+        "id": 20,
+        "slide_number": 21,
+        "type": "concept",
+        "title": "Flex Shrink",
+        "body": "Flex-shrink determines how a flex item reduces its size when the container becomes too small."
+    },
+    {
+        "id": 21,
+        "slide_number": 22,
+        "type": "code",
+        "title": "Shrink Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-22.png",
+        "codeblock": "/* No shrinking */\nflex-shrink:0;\n/* Default shrinking */\nflex-shrink:1;\n/* Faster shrinking */\nflex-shrink:2;\n/* Different shrink factors */\n.item-x{flex-shrink:1;}\n.item-y{flex-shrink:3;}\n/* Shrink factors applied */",
+        "codeTitle": "",
+        "description": "Controlling reduction of item size under overflow.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=11NcUD9NqlEqt8BFYLL1yBy6XQFQNM5RW&export=download"
+    },
+    {
+        "id": 22,
+        "slide_number": 23,
+        "type": "concept",
+        "title": "Flex Basis & Order",
+        "body": "Flex-basis sets the initial main‑axis size before free space distribution. Order changes visual ordering without altering HTML."
+    },
+    {
+        "id": 23,
+        "slide_number": 24,
+        "type": "code",
+        "title": "Basis Code",
+        "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-24.png",
+        "codeblock": "/* Default basis (auto) */\nflex-basis:auto;\n/* Fixed basis */\nflex-basis:200px;\n/* Percentage basis */\nflex-basis:30%;\n/* Change visual order */\norder:2; /* Moves item after items with order 1 */\n/* Basis and order finalized */\n/* End of basis settings */",
+        "codeTitle": "",
+        "description": "Defining starting size and reordering items.",
+        "language": "css",
+        "imageUrl": "https://drive.google.com/uc?id=1KbdYBqQVCRTycbfgY2ulmLyQWhkHEA0g&export=download"
+    },
+    {
+        "id": 24,
+        "slide_number": 25,
+        "type": "notes",
+        "title": "Summary",
+        "bullets": [
+            "flex-grow allocates extra space",
+            "flex-shrink reduces size on overflow",
+            "flex-basis sets initial size; order reorders items"
+        ]
+    },
+    {
+        "id": 25,
+        "slide_number": 26,
+        "type": "thank_you",
+        "title": "Thank You"
+    }
 ]
