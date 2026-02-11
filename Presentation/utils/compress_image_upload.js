@@ -7,6 +7,7 @@ import AuthWithGoogle from '../config/auth/google-oauth.js';
 
 
 const compress_image_upload = async (fileName, slideType, folderName) => {
+    let compressed_image_path = null;
     try {
         let ImageUrl;
 
@@ -18,7 +19,7 @@ const compress_image_upload = async (fileName, slideType, folderName) => {
         const baseImageDir = path.resolve(process.cwd(), 'Presentation', 'media', 'images');
 
         const imagePath = path.join(baseImageDir, folderName, fileName);
-        const uploadDir = path.join(baseImageDir, 'temp_storage');
+        const uploadDir = path.join(baseImageDir, 'code_snippets', 'temp_storage');
 
         if (fs.existsSync(imagePath)) {
             // Ensure upload directory exists - resizeAndSaveImage does this but good to be explicit/safe
@@ -27,7 +28,7 @@ const compress_image_upload = async (fileName, slideType, folderName) => {
             }
 
             // Pass the directory, not a file path, to resizeAndSaveImage as per its definition
-            const compressed_image_path = await resizeAndSaveImage(imagePath, uploadDir, slideType);
+            compressed_image_path = await resizeAndSaveImage(imagePath, uploadDir, slideType);
 
             if (!compressed_image_path) {
                 console.log("The image is not compressed");
@@ -45,9 +46,26 @@ const compress_image_upload = async (fileName, slideType, folderName) => {
         }
 
         console.log("Uploaded Image URL:", ImageUrl);
+
+        // Cleanup: Delete the compressed temp file
+        if (ImageUrl && compressed_image_path && fs.existsSync(compressed_image_path)) {
+            try {
+                fs.unlinkSync(compressed_image_path);
+                console.log(`Deleted temp file: ${path.basename(compressed_image_path)}`);
+            } catch (e) {
+                console.warn(`Failed to delete temp file ${path.basename(compressed_image_path)}:`, e.message);
+            }
+        }
+
         return { ImageUrl };
     } catch (error) {
         console.log('Image Upload Error', error.message);
+        // Clean up even on error if file exists
+        if (compressed_image_path && fs.existsSync(compressed_image_path)) {
+            try {
+                fs.unlinkSync(compressed_image_path);
+            } catch (ignore) { }
+        }
         return null;
     }
 }

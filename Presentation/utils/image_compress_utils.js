@@ -4,9 +4,8 @@ import sharp from 'sharp';
 
 // Dimension config (centralized)
 export const IMAGE_CONFIG = {
-  Code: { height: 6.95, width: 3.45 },
+  Code: { height: 3.06, width: 3.89 }, // 9.87 cm x 7.76 cm in inches
   Title: { height: 4.1, width: 4.1 },
-
 };
 
 export const PT_UNIT = 144;
@@ -20,6 +19,10 @@ const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code') => {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
+    if (slideType === 'SkipResize') {
+      return compressImage(inputPath, outputDir);
+    }
+
     // Get dimensions from config, fallback to Code
     const dim = IMAGE_CONFIG[slideType] || IMAGE_CONFIG.Code;
 
@@ -28,15 +31,23 @@ const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code') => {
     const height = convertToPt(dim.height);
 
     // Generate a safe filename
-    const safeFileName = `resized_${slideType}_${Date.now()}.jpg`;
+    const safeFileName = `${path.basename(inputPath, path.extname(inputPath))}_resized${path.extname(inputPath)}`;
     const outputPath = path.join(outputDir, safeFileName);
 
-    // Resize and save
-    await sharp(inputPath)
-      .resize(width, height)
-      .toFile(outputPath);
+    const image = sharp(inputPath).resize(width, height);
+    const metadata = await image.metadata();
 
-    console.log(`Image (${slideType}) saved securely at: ${outputPath}`);
+    if (metadata.format === 'jpeg' || metadata.format === 'jpg') {
+      image.jpeg({ quality: 80 });
+    } else if (metadata.format === 'png') {
+      image.png({ compressionLevel: 9, palette: true });
+    }
+
+    
+    // Resize and save
+    await image.toFile(outputPath);
+    
+    console.log(`Image (${slideType}) resized and saved: ${outputPath}`);
     return outputPath;
   } catch (err) {
     console.error('Error resizing image:', err);

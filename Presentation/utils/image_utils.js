@@ -4,7 +4,7 @@ import { translateX_and_translateY } from "./text_utils.js";
 
 // 1. Centralize your dimensions in a config object
 export const IMAGE_CONFIG = {
-    Code: { height: 6.95, width: 3.45 },
+    Code: { height: 3.06, width: 3.89 },
     Title: { height: 2.5, width: 2.5 },
     // Easy to add more types here later, like 'Content' or 'Footer'
 };
@@ -12,15 +12,16 @@ export const IMAGE_CONFIG = {
 export const PT_UNIT = 72;
 export const convertToPt = (value) => Math.round(value * PT_UNIT);
 
-const createImage = (imageId, pageId, link, slideType, currentOffsetY = 0) => {
+const createImage = (imageId, pageId, link, slideType, currentOffsetY = 0, alignment = 'flex-start', justifyContent = 'center') => {
     let requests = []
     // 2. Get dimensions based on slideType, fallback to a default if not found
     const dim = IMAGE_CONFIG[slideType] || IMAGE_CONFIG.Code;
 
     // 3. Get the transform data once to keep the code clean
+
     let imageLayout = {
-        alignItems: 'center',
-        justifyContent: 'center',
+        alignItems: alignment,
+        justifyContent: justifyContent,
         padding: title_padding,
     }
     let imageMetrics = {

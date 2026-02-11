@@ -5,8 +5,8 @@ const config = {
     defaultFont: 'jetBrainsMono',
     defaultLanguage: 'javascript',
     viewport: {
-        width: 600,
-        height: 400,
+        width: 1200, // Increased to ensure container fits
+        height: 800,
         deviceScaleFactor: 2
     },
 

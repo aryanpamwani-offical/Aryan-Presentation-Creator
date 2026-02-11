@@ -1,5 +1,3 @@
-
-
 * {
     margin: 0;
     padding: 0;
@@ -12,14 +10,25 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 60px;
+    padding: 20px;
     background: transparent;
 }
 
 .snippet-container {
-    display: inline-block;
-    padding: 0;
+    display: inline-flex;
     position: relative;
+    width: fit-content;
+    height: fit-content;
+    /* min-width: 600px;  Ensure decent width? */
+    min-width: 800px;
+
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    align-items: stretch;
+    justify-content: stretch;
+    background: #111827;
+    /* Opaque background (gray-900) to remove transparency */
 }
 
 /* All themes use same glassmorphic style */
@@ -29,17 +38,26 @@ body {
 .snippet-container[data-theme="sunset"],
 .snippet-container[data-theme="ocean"],
 .snippet-container[data-theme="forest"] {
-    background: transparent;
+    background: #111827;
+    /* Match opaque background */
 }
 
 .snippet-window {
-    min-width: 400px;
+    width: 100%;
+    /* height: 100%;  Let it fill container */
+    flex: 1;
+    min-width: 0;
     background: rgba(0, 0, 0, 0.75);
+    /* Opaque interior (gray-800) */
     border: 2px solid rgba(107, 114, 128, 0.4);
-    border-radius: 0.75rem;
+    border-radius: 0;
+    /* Remove radius to fill corners fully or keep? User said NO transparent space */
+    /* If we keep radius, the container background (#111827) shows in corners. This is good (no alpha). */
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    backdrop-filter: blur(10px);
+    box-shadow: none;
+    /* Shadow might need space? Remove to be safe */
+    display: flex;
+    flex-direction: column;
 }
 
 
@@ -104,6 +122,10 @@ pre {
     font-size: 14px !important;
     line-height: 1.5 !important;
     font-weight: 400;
+    white-space: pre-wrap !important;
+    /* Wrap long lines */
+    word-break: break-word !important;
+    /* Prevent overflow */
 }
 
 code {

@@ -8,7 +8,7 @@ import buildModuleIntroSlide from "./slide_builders/module_intro_slide.js";
 import buildConceptSlide from "./slide_builders/concept_slide.js";
 import buildScreenshotTutorialSlide from "./slide_builders/screenshot_tutorial_slide.js";
 import buildNotesSlide from "./slide_builders/notes_slide.js";
-import { slidesData } from "./slide_builders/slideData.js";
+import { loadSlidesData } from "./slide_builders/slideData.js";
 
 
 
@@ -18,8 +18,12 @@ const buildPresentation = async (defaultSlideId) => {
   const requests = [];
   const slideIds = [];
 
-  // --- 0. Interactive Code Snippet Generation & Upload ---
-  await manageCodeSnippets(slidesData);
+  // --- 0. Interactive Code Snippet Generation ---
+  // This updates presentation.json on disk if user chooses to generate
+  await manageCodeSnippets();
+
+  // Load fresh data after potential updates
+  const slidesData = loadSlidesData();
 
   // --- Generate Requests for Each Slide ---
   for (const [index, slide] of slidesData.entries()) {
@@ -45,14 +49,15 @@ const buildPresentation = async (defaultSlideId) => {
     });
 
     // Build Slide Content
-    if (type === "title") { // Handle lowercase 'title' mapping if needed, or update createSlideIds to be case insensitive/consistent
+    if (type === "title") {
+      // Handle lowercase 'title' mapping if needed, or update createSlideIds to be case insensitive/consistent
       // Note: `createSlideIds` expects "Title" (case sensitive in original, but I updated it to handle 'Title'). 
       // My mock data uses lowercase. I should standardise.
       // `createSlideIds` acts on "Title" or "title" now? 
       // I updated `generateId.js` to handle "Title", but my mock data has "title".
       // I should probably ensure `createSlideIds` handles the types correctly (I added OR conditions).
 
-      const titleRequests = await buildTitleSlide(pageId, elements, slide);
+      const titleRequests = await buildTitleSlide(pageId, elements, slide, index);
       requests.push(...titleRequests);
     } else if (type === "module_intro") {
       requests.push(...buildModuleIntroSlide(pageId, elements, slide));

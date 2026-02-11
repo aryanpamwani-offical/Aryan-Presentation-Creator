@@ -1,13 +1,20 @@
 import { google } from "googleapis";
 import AuthWithGoogle from "../config/auth/google-oauth.js";
-import buildPresentation from "./skillbuilder.js";
-import { slidesData } from "./slide_builders/slideData.js";
+import buildPresentation from "./buildPresentation.js";
+import { loadSlidesData } from "./slide_builders/slideData.js";
 
 
 const createSlides = async () => {
   try {
     const authClient = await AuthWithGoogle();
     const slidesApi = google.slides({ version: "v1", auth: authClient });
+
+    // Reload data to ensure we have the latest generated content
+    const slidesData = loadSlidesData();
+
+    if (!slidesData || slidesData.length === 0) {
+      throw new Error("No slides data found in presentation.json");
+    }
 
     // 1. Create the presentation (returns default slide info)
     const response = await slidesApi.presentations.create({

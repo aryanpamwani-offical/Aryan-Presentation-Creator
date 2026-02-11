@@ -3,6 +3,10 @@ import path from 'path';
 import puppeteer from 'puppeteer';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
+import saveJSONFile from '../ai-core/saveJSONFile.js';
+import AuthWithGoogle from '../config/auth/google-oauth.js';
+import uploadImageToDrive from '../config/drive/google_drive.js';
+import resizeAndSaveImage from './image_compress_utils.js';
 
 /**
  * Detects the programming language from code content
@@ -156,8 +160,8 @@ async function generateCodeSnippet(snippet, options = {}, browserInstance = null
     try {
         page = await browser.newPage();
 
-        // Set viewport
-        await page.setViewport(config.viewport);
+        // Initial large viewport to allow rendering
+        await page.setViewport({ width: 1600, height: 1600, deviceScaleFactor: 2 });
 
         // Set content and wait for network idle (scripts loaded)
         await page.setContent(html, {
@@ -167,16 +171,37 @@ async function generateCodeSnippet(snippet, options = {}, browserInstance = null
         // Wait for fonts to load
         await page.evaluateHandle('document.fonts.ready');
 
-        // Give extra time for rendering (reduced for performance, but kept safe)
+        // Give extra time for rendering
         await new Promise(resolve => setTimeout(resolve, 100));
 
+        // Get the bounding box of the snippet container dynamically
+        const dimensions = await page.evaluate(() => {
+            const container = document.querySelector('.snippet-container');
+            if (!container) return null;
 
-        // Get the bounding box of the snippet container
-        const element = await page.$('.snippet-container');
+            // Allow container to fit content naturally
+            container.style.width = 'fit-content';
+            container.style.height = 'fit-content';
 
-        if (!element) {
+            const rect = container.getBoundingClientRect();
+            return {
+                width: Math.ceil(rect.width),
+                height: Math.ceil(rect.height)
+            };
+        });
+
+        if (!dimensions) {
             throw new Error('Snippet container not found');
         }
+
+        // Resize viewport to match content exactly
+        await page.setViewport({
+            width: dimensions.width,
+            height: dimensions.height,
+            deviceScaleFactor: 2 // High res
+        });
+
+        const element = await page.$('.snippet-container');
 
         // Prepare output path
         const outputDir = path.resolve(process.cwd(), config.output.directory);
@@ -189,13 +214,14 @@ async function generateCodeSnippet(snippet, options = {}, browserInstance = null
 
         // Take screenshot
         const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
+
         await element.screenshot({
             path: outputPath,
             omitBackground: omitBackground,
             type: config.output.format
         });
 
-        console.log(`✓ Generated: ${fileName}`);
+        console.log(`✓ Generated: ${fileName} (${dimensions.width}x${dimensions.height})`);
         return outputPath;
 
     } catch (error) {
@@ -209,26 +235,45 @@ async function generateCodeSnippet(snippet, options = {}, browserInstance = null
 
 
 /**
- * Main function to generate all code snippets from code.json
+ * Main function to generate all code snippets from presentation.json, compress, and upload to Google Drive.
  */
 async function generateAllSnippets(options = {}) {
     let browser;
     try {
-        const codeJsonPath = path.resolve(process.cwd(), 'code.json');
+        const presentationJsonPath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
 
-        if (!fs.existsSync(codeJsonPath)) {
-            console.error('❌ code.json not found!');
+        if (!fs.existsSync(presentationJsonPath)) {
+            console.error('❌ presentation.json not found!', presentationJsonPath);
             return;
         }
 
-        const rawData = fs.readFileSync(codeJsonPath, 'utf8');
-        let codeBlocks = JSON.parse(rawData);
+        const rawData = fs.readFileSync(presentationJsonPath, 'utf8');
+        let slides = JSON.parse(rawData);
 
-        if (!Array.isArray(codeBlocks)) {
-            codeBlocks = [codeBlocks];
+        if (!Array.isArray(slides)) {
+            console.error('❌ presentation.json is not an array!');
+            return;
         }
 
-        console.log(`\n📸 Generating ${codeBlocks.length} code snippet(s)...\n`);
+        // Filter for code slides
+        const codeSlides = slides.filter(slide => slide.type === 'code' && slide.codeblock);
+
+        console.log(`\n📸 Found ${codeSlides.length} code slide(s) in presentation.json\n`);
+
+        if (codeSlides.length === 0) {
+            console.log("No code slides to process.");
+            return;
+        }
+
+        // Authenticate Google Drive
+        let authClient;
+        try {
+            authClient = await AuthWithGoogle();
+        } catch (e) {
+            console.error("❌ Failed to authenticate with Google:", e);
+            // Fallback or exit? If upload is required, exit.
+            // But lets try to generate locally at least.
+        }
 
         // Launch browser once
         browser = await puppeteer.launch({
@@ -236,16 +281,98 @@ async function generateAllSnippets(options = {}) {
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
-        for (const block of codeBlocks) {
-            if (!block.slide_number) {
-                console.warn(`⚠ Skipping block: No slide_number found.`);
-                continue;
-            }
+        let updatedCount = 0;
 
-            await generateCodeSnippet(block, options, browser);
+        for (const slide of slides) {
+            if (slide.type === 'code' && slide.codeblock) {
+                try {
+                    console.log(`Processing slide ${slide.slide_number}...`);
+
+                    // Generate local image
+                    const imagePath = await generateCodeSnippet(slide, options, browser);
+                    slide.image = imagePath; // Update presentation.json with absolute path (fallback)
+
+                    // Upload logic
+                    if (authClient) {
+                        // Compress image
+                        const baseImageDir = path.dirname(imagePath);
+                        const tempDir = path.join(baseImageDir, 'temp_storage');
+                        if (!fs.existsSync(tempDir)) {
+                            fs.mkdirSync(tempDir, { recursive: true });
+                        }
+
+                        let uploadPath = imagePath;
+                        try {
+                            // Just compress, don't resize (keep dynamic dimensions)
+                            const compressedPath = await resizeAndSaveImage(imagePath, tempDir, 'SkipResize'); // We'll handle 'SkipResize' in utils or just assume it defaults
+                            if (compressedPath) {
+                                console.log(`Using compressed image: ${path.basename(compressedPath)}`);
+                                uploadPath = compressedPath;
+                            }
+                        } catch (compErr) {
+                            console.warn("Compression failed, using original:", compErr.message);
+                        }
+
+                        console.log(`Uploading ${path.basename(uploadPath)} to Drive...`);
+                        const imageUrl = await uploadImageToDrive(authClient, uploadPath);
+
+                        if (imageUrl) {
+                            console.log(`☁ Uploaded: ${imageUrl}`);
+                            slide.imageUrl = imageUrl;
+
+                            // Cleanup: Delete the compressed temp file
+                            if (uploadPath && fs.existsSync(uploadPath)) {
+                                try {
+                                    fs.unlinkSync(uploadPath);
+                                    console.log(`Deleted temp file: ${path.basename(uploadPath)}`);
+                                } catch (e) {
+                                    console.warn(`Failed to delete temp file ${path.basename(uploadPath)}:`, e.message);
+                                }
+                            }
+
+                            // Cleanup: Delete the original generated file in code_snippets
+                            if (imagePath && fs.existsSync(imagePath)) {
+                                try {
+                                    fs.unlinkSync(imagePath);
+                                    console.log(`Deleted local file: ${path.basename(imagePath)}`);
+                                } catch (e) {
+                                    console.warn(`Failed to delete local file ${path.basename(imagePath)}:`, e.message);
+                                }
+                            }
+
+                        } else {
+                            console.warn("Failed to get imageUrl from upload.");
+                        }
+
+                        // Cleanup temp compressed file
+                        if (uploadPath !== imagePath && fs.existsSync(uploadPath)) {
+                            // fs.unlinkSync(uploadPath); // strict cleanup might be safer later
+                        }
+
+                    } else {
+                        console.warn("Skipping upload due to auth failure.");
+                    }
+
+                    updatedCount++;
+                } catch (err) {
+                    console.error(`Failed to handle slide ${slide.slide_number}`, err);
+                }
+            }
         }
 
-        console.log(`\n✨ Successfully generated ${codeBlocks.length} code snippet(s)!\n`);
+        if (updatedCount > 0) {
+            console.log(`\n✨ Successfully processed ${updatedCount} code snippet(s)!`);
+            // Save updated presentation.json
+            const saveSuccess = saveJSONFile(JSON.stringify(slides, null, 4));
+            if (saveSuccess) {
+                console.log("✅ Updated presentation.json saved successfully.");
+            } else {
+                console.error("❌ Failed to save updated presentation.json.");
+            }
+
+        } else {
+            console.log("\nNo changes made.");
+        }
 
     } catch (error) {
         console.error('❌ Error in generateAllSnippets:', error);

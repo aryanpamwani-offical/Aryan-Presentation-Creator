@@ -31,7 +31,7 @@ async function selectOption(promptText, options) {
 }
 
 console.log('🚀 Testing Code Snippet Generator\n');
-console.log('This will generate code snippets from code.json...\n');
+console.log('This will generate code snippets from presentation.json...\n');
 
 try {
     // Select Theme

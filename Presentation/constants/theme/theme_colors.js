@@ -26,6 +26,11 @@ const THEME_COLORS = {
         red: 0.259,
         green: 0.522,
         blue: 0.961
+    },
+    codeAccent: {
+        red: 0.0,
+        green: 1.0,
+        blue: 1.0
     }
 }
 
