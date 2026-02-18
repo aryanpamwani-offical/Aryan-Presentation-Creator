@@ -3,41 +3,41 @@
     "id": 0,
     "slide_number": 1,
     "type": "title",
-    "title": "Mastering Modern Layouts",
+    "title": "Mastering CSS Flexbox",
     "localImagePath": "/css.png",
-    "imageUrl": "https://drive.google.com/uc?id=1JMtycwAQl3rr_ay9qiHBBrgM5EkRdRiC&export=download",
-    "subtitle": "A Comprehensive Guide to CSS Flexbox"
+    "imageUrl": "https://drive.google.com/uc?id=1hLTTivWdnvs2SvH3wpszO2G_LwX6XVDS&export=download",
+    "subtitle": "A Comprehensive Guide to Flexible Layouts"
   },
   {
     "id": 1,
     "slide_number": 2,
     "type": "module_intro",
-    "moduleLabel": "Module 1: Flexbox Fundamentals",
-    "title": "Introducing the Flexbox Model",
+    "moduleLabel": "Module 1",
+    "title": "Introduction to Flexbox",
     "bullets": [
-      "Flexbox is a one-dimensional layout model.",
-      "It provides an efficient way to distribute space among items in a container.",
-      "Key concepts include flex containers, flex items, and axes."
+      "Understanding the core principles of Flexbox.",
+      "Setting up a Flex Container and defining Flex Items.",
+      "Exploring the main and cross axes."
     ]
   },
   {
     "id": 2,
     "slide_number": 3,
     "type": "concept",
-    "title": "The Flex Container",
-    "body": "The flex container is the element that holds the flex items. \n\nTo make an element a flex container, set its display property to flex or inline-flex. This enables flexbox behavior for its direct children, which become flex items."
+    "title": "What is Flexbox?",
+    "body": "Flexbox is a powerful one-dimensional layout module in CSS. It provides an efficient way to distribute space among items in a container, even when their size is unknown or dynamic. \n\nIt simplifies the creation of responsive and adaptable user interfaces, enabling easier alignment and distribution of elements."
   },
   {
     "id": 3,
     "slide_number": 4,
     "type": "code",
-    "title": "Create Flex Container",
+    "title": "Flex Container",
     "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-4.png",
-    "codeblock": "/* Make the div a flex container */\ndisplay: flex;\n\n/* Or, for inline flex */\ndisplay: inline-flex;\n\n/* This will apply flexbox properties to the direct children */\n.container {\n  display: flex;\n}\n",
-    "codeTitle": "CSS",
-    "description": "Setting display: flex or display: inline-flex turns an element into a flex container.",
+    "codeblock": "/* Define a container and make it a flex container */\ndiv {\n  display: flex;\n  /* This line activates Flexbox for the div */\n  background-color: lightblue;\n  padding: 20px;\n  border: 1px solid black;\n}\n\n/* Add some flex items within the container */\ndiv > p {\n  margin: 5px;\n  padding: 5px;\n  border: 1px dotted gray;\n}\n\n/* You can further style the flex items */",
+    "codeTitle": "Basic Flex Container",
+    "description": "This code snippet demonstrates how to create a basic flex container using the `display: flex` property.",
     "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1qCC7CNVwvJ1NofoAF27T0ysvSI7ORJR6&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=1VXBYUbNqDWgdmrQv_id5FDK0nBNHUNA3&export=download"
   },
   {
     "id": 4,
@@ -45,59 +45,60 @@
     "type": "notes",
     "title": "Summary",
     "bullets": [
-      "Flexbox is a powerful layout tool.",
-      "The display property is key to enabling flexbox.",
-      "Understanding containers and items is fundamental."
+      "Flexbox is designed for one-dimensional layouts.",
+      "The `display: flex` property activates Flexbox.",
+      "Flex items are direct children of the flex container."
     ]
   },
   {
     "id": 5,
     "slide_number": 6,
-    "type": "concept",
-    "title": "Flex Items and Axes",
-    "body": "Flex items are the direct children of a flex container. \n\nThey are arranged along the main axis, which is horizontal by default. The cross axis is perpendicular to the main axis."
+    "type": "module_intro",
+    "moduleLabel": "Module 2",
+    "title": "Flexbox Properties",
+    "bullets": [
+      "Controlling item order with `order`.",
+      "Adjusting item growth and shrink with `flex-grow` and `flex-shrink`.",
+      "Setting the initial size of items with `flex-basis`."
+    ]
   },
   {
     "id": 6,
     "slide_number": 7,
-    "type": "code",
-    "title": "Item Arrangement",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-7.png",
-    "codeblock": "/* Flex container */\n.container {\n  display: flex;\n}\n\n/* Flex items */\n.item {\n  width: 100px;\n  height: 50px;\n  background-color: lightblue;\n}\n",
-    "codeTitle": "CSS",
-    "description": "These items will arrange horizontally by default.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1BTRcubDQXwP82UA7F7dMygLR_s0jZ2pE&export=download"
+    "type": "concept",
+    "title": "Flex Direction",
+    "body": "The `flex-direction` property specifies the direction of the flex items in the flex container. It can be set to `row` (default), `row-reverse`, `column`, or `column-reverse`. \n\nThis property determines the main axis, which is used for aligning and distributing space among the items. Understanding this is vital for layout control."
   },
   {
     "id": 7,
     "slide_number": 8,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "Flex items are direct children of flex containers.",
-      "The main axis determines the primary direction of layout.",
-      "The cross axis is perpendicular to the main axis."
-    ]
+    "type": "code",
+    "title": "Row and Column",
+    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-8.png",
+    "codeblock": "/* Flex container with row direction */\ndiv.row {\n  display: flex;\n  flex-direction: row;\n  /* Items arranged horizontally */\n  background-color: lightgreen;\n}\n\n/* Flex container with column direction */\ndiv.column {\n  display: flex;\n  flex-direction: column;\n  /* Items arranged vertically */\n  background-color: lightcoral;\n}\n\n/* Styling for flex items */\ndiv > div {\n  margin: 10px;\n  padding: 10px;\n  border: 1px solid black;\n}",
+    "codeTitle": "Flex Direction Examples",
+    "description": "This code shows how to use `flex-direction` to arrange items in rows and columns.",
+    "language": "css",
+    "imageUrl": "https://drive.google.com/uc?id=1z-mFkNKD_UhrYys_7UCza2Xll8r5nleu&export=download"
   },
   {
     "id": 8,
     "slide_number": 9,
     "type": "concept",
-    "title": "The Main Axis Property",
-    "body": "The main-axis property allows you to change the direction of the main axis. \n\nCommon values include row (default), column, row-reverse, and column-reverse. This drastically changes how items are positioned."
+    "title": "Flex Wrap",
+    "body": "The `flex-wrap` property controls whether flex items should wrap onto multiple lines if they exceed the container's width. It can be set to `nowrap` (default), `wrap`, or `wrap-reverse`. \n\nThis is essential for creating responsive layouts that adapt to different screen sizes, preventing overflow and ensuring content remains visible."
   },
   {
     "id": 9,
     "slide_number": 10,
     "type": "code",
-    "title": "Change Main Axis",
+    "title": "Wrap Behavior",
     "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-10.png",
-    "codeblock": "/* Change main axis to column */\n.container {\n  display: flex;\n  flex-direction: column;\n}\n\n/* Items will now stack vertically */\n",
-    "codeTitle": "CSS",
-    "description": "Setting flex-direction: column causes the items to stack vertically",
+    "codeblock": "/* Flex container with wrap behavior */\ndiv.wrap {\n  display: flex;\n  flex-wrap: wrap;\n  /* Items will wrap to the next line if needed */\n  background-color: lightyellow;\n  width: 300px;\n}\n\n/* Styling for flex items */\ndiv > div {\n  margin: 5px;\n  padding: 5px;\n  border: 1px solid black;\n  width: 80px;\n  height: 50px;\n}",
+    "codeTitle": "Flex Wrap Example",
+    "description": "This code demonstrates how to use `flex-wrap` to wrap flex items onto multiple lines.",
     "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1R_R_sg11AETsfNQXOcDu1Pza_k5gZO5m&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=1C6guhi53vkcpacpFeEyryEJEAxQvZOWL&export=download"
   },
   {
     "id": 10,
@@ -105,190 +106,76 @@
     "type": "notes",
     "title": "Summary",
     "bullets": [
-      "flex-direction controls the main axis.",
-      "row is the default, arranging items horizontally.",
-      "column arranges items vertically."
+      "`flex-direction` controls the main axis.",
+      "`flex-wrap` manages line breaks for overflowing items.",
+      "These properties are fundamental to Flexbox layout."
     ]
   },
   {
     "id": 11,
     "slide_number": 12,
     "type": "module_intro",
-    "moduleLabel": "Module 2: Flexbox Properties",
-    "title": "Controlling Flex Item Behavior",
+    "moduleLabel": "Module 3",
+    "title": "Advanced Flexbox Techniques",
     "bullets": [
-      "Flexbox provides properties to control item sizing, alignment, and order.",
-      "Understanding these properties is essential for creating complex layouts.",
-      "We'll explore flex-grow, flex-shrink, flex-basis, and align-items."
+      "Using `justify-content` and `align-items` for alignment.",
+      "Understanding `align-content` for multi-line alignment.",
+      "Exploring `flex` shorthand property."
     ]
   },
   {
     "id": 12,
     "slide_number": 13,
     "type": "concept",
-    "title": "Flex Grow Property",
-    "body": "The flex-grow property specifies how much a flex item will grow relative to the other flex items in the container. \n\nIt accepts a unitless value, where 0 means the item will not grow, and 1 means it will grow to fill available space. Higher values indicate a greater proportion of growth."
+    "title": "Justify Content",
+    "body": "The `justify-content` property defines how flex items are distributed along the main axis. Common values include `flex-start` (default), `flex-end`, `center`, `space-between`, and `space-around`. \n\nIt allows for precise control over the horizontal or vertical alignment of items within the flex container, creating visually appealing layouts."
   },
   {
     "id": 13,
     "slide_number": 14,
     "type": "code",
-    "title": "Flex Grow Example",
+    "title": "Justify Content Examples",
     "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-14.png",
-    "codeblock": "/* Flex items */\n.item {\n  flex-grow: 1;\n  width: 100px;\n}\n\n/* All items will grow equally to fill available space */\n",
-    "codeTitle": "CSS",
-    "description": "Setting flex-grow: 1 on all items distributes space equally.",
+    "codeblock": "/* Flex container with justify-content */\ndiv.justify {\n  display: flex;\n  justify-content: center;\n  /* Items centered along the main axis */\n  background-color: lightblue;\n  height: 100px;\n}\n\n/* Styling for flex items */\ndiv > div {\n  margin: 5px;\n  padding: 5px;\n  border: 1px solid black;\n}",
+    "codeTitle": "Justify-Content Code",
+    "description": "This code snippet demonstrates how to use `justify-content` to center flex items.",
     "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1vM8RgdHpGFfNCbRaiw7xQksrguOVeuuz&export=download"
+    "imageUrl": "https://drive.google.com/uc?id=1vg27I3UkDuJuTzpxd32W5FBKC9bTgGYL&export=download"
   },
   {
     "id": 14,
     "slide_number": 15,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "flex-grow determines how items expand.",
-      "A value of 1 means the item grows to fill available space.",
-      "Higher values indicate greater growth proportion."
-    ]
+    "type": "concept",
+    "title": "Align Items",
+    "body": "The `align-items` property defines how flex items are aligned along the cross axis. Values include `stretch` (default), `flex-start`, `flex-end`, `center`, and `baseline`. \n\nThis property is crucial for vertical alignment within a flex container, ensuring items are positioned correctly relative to each other and the container's edges."
   },
   {
     "id": 15,
     "slide_number": 16,
-    "type": "concept",
-    "title": "Flex Shrink Property",
-    "body": "The flex-shrink property specifies how much a flex item will shrink relative to the other flex items in the container. \n\nIt also accepts a unitless value, where 0 means the item will not shrink, and 1 means it will shrink to fit the container. Higher values mean a greater proportion of shrinking."
+    "type": "code",
+    "title": "Align Items Examples",
+    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-16.png",
+    "codeblock": "/* Flex container with align-items */\ndiv.align {\n  display: flex;\n  align-items: center;\n  /* Items centered along the cross axis */\n  background-color: lightgreen;\n  height: 100px;\n}\n\n/* Styling for flex items */\ndiv > div {\n  margin: 5px;\n  padding: 5px;\n  border: 1px solid black;\n}",
+    "codeTitle": "Align-Items Code",
+    "description": "This code snippet demonstrates how to use `align-items` to center flex items vertically.",
+    "language": "css",
+    "imageUrl": "https://drive.google.com/uc?id=11qS_9khW-SIiySXNUDL8CGSF_SKhbhtG&export=download"
   },
   {
     "id": 16,
     "slide_number": 17,
-    "type": "code",
-    "title": "Flex Shrink Example",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-17.png",
-    "codeblock": "/* Flex items */\n.item {\n  flex-shrink: 1;\n  width: 200px;\n}\n\n/* Items will shrink if the container is too small */\n",
-    "codeTitle": "CSS",
-    "description": "Items shrink if their content exceeds container width.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1ubEgBuiCRnDUr80qsU3_egFs0fDRGUVY&export=download"
+    "type": "notes",
+    "title": "Summary",
+    "bullets": [
+      "`justify-content` aligns items on the main axis.",
+      "`align-items` aligns items on the cross axis.",
+      "Mastering these properties unlocks powerful layout control."
+    ]
   },
   {
     "id": 17,
     "slide_number": 18,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "flex-shrink determines how items contract.",
-      "A value of 1 means the item will shrink to fit.",
-      "Higher values indicate a greater shrinking proportion."
-    ]
-  },
-  {
-    "id": 18,
-    "slide_number": 19,
-    "type": "concept",
-    "title": "Flex Basis Property",
-    "body": "The flex-basis property specifies the initial main size of a flex item. \n\nIt can be a length (e.g., 100px) or a percentage (e.g., 50%). If not specified, the browser uses the item's width or height. The flex-basis property is the starting point for calculating the item's final size."
-  },
-  {
-    "id": 19,
-    "slide_number": 20,
-    "type": "code",
-    "title": "Flex Basis Example",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-20.png",
-    "codeblock": "/* Flex items */\n.item {\n  flex-basis: 100px;\n}\n\n/* Items will initially be 100px wide */\n",
-    "codeTitle": "CSS",
-    "description": "Specifies the initial size of a flex item.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1x10vwxCYoeX517utDJvEP97iP6MW5Q7k&export=download"
-  },
-  {
-    "id": 20,
-    "slide_number": 21,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "flex-basis sets the initial size of an item.",
-      "Can be specified in pixels, percentages, or other length units.",
-      "It's the starting point for size calculations."
-    ]
-  },
-  {
-    "id": 21,
-    "slide_number": 22,
-    "type": "concept",
-    "title": "Align Items Property",
-    "body": "The align-items property aligns flex items along the cross axis of the flex container. \n\nCommon values include stretch (default), flex-start, flex-end, center, and baseline. This property affects the vertical alignment of items when the main axis is horizontal."
-  },
-  {
-    "id": 22,
-    "slide_number": 23,
-    "type": "code",
-    "title": "Align Items Example",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-23.png",
-    "codeblock": "/* Flex container */\n.container {\n  display: flex;\n  align-items: center;\n  height: 200px;\n}\n\n/* Items will be vertically centered */\n",
-    "codeTitle": "CSS",
-    "description": "Vertically aligns items within the flex container.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=1kBRrcmEYybJHmqvHPD4mzS59iLnLIqd1&export=download"
-  },
-  {
-    "id": 23,
-    "slide_number": 24,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "align-items controls cross-axis alignment.",
-      "stretch is the default, filling the container.",
-      "center aligns items to the center of the cross axis."
-    ]
-  },
-  {
-    "id": 24,
-    "slide_number": 25,
-    "type": "module_intro",
-    "moduleLabel": "Module 3: Advanced Flexbox Techniques",
-    "title": "Putting Flexbox Into Practice",
-    "bullets": [
-      "Learn to build real-world layouts with flexbox.",
-      "Explore techniques like wrapping, ordering, and justification.",
-      "Master responsive design using flexbox."
-    ]
-  },
-  {
-    "id": 25,
-    "slide_number": 26,
-    "type": "concept",
-    "title": "Flex Wrap Property",
-    "body": "The flex-wrap property specifies whether the flex items should wrap onto multiple lines if they exceed the container's width. \n\nCommon values are nowrap (default), wrap, and wrap-reverse.  Wrapping is essential for creating responsive layouts that adapt to different screen sizes."
-  },
-  {
-    "id": 26,
-    "slide_number": 27,
-    "type": "code",
-    "title": "Enable Flex Wrap",
-    "image": "C:\\Users\\DELL\\Desktop\\Superprof-Presentation-Creator\\Presentation\\media\\images\\code_snippets\\slide-27.png",
-    "codeblock": "/* Flex container */\n.container {\n  display: flex;\n  flex-wrap: wrap;\n}\n\n/* Items will wrap onto new lines if needed */\n",
-    "codeTitle": "CSS",
-    "description": "Allows items to wrap to the next line.",
-    "language": "css",
-    "imageUrl": "https://drive.google.com/uc?id=16pxtZ1D2KVjZWzfVBZA7_lQirINF6ZYL&export=download"
-  },
-  {
-    "id": 27,
-    "slide_number": 28,
-    "type": "notes",
-    "title": "Summary",
-    "bullets": [
-      "flex-wrap controls whether items wrap.",
-      "nowrap is the default, keeping items on one line.",
-      "wrap allows items to flow to the next line."
-    ]
-  },
-  {
-    "id": 28,
-    "slide_number": 29,
     "type": "thank_you",
-    "title": "Thank You for Learning Flexbox!",
-    "subtitle": "Now go build some amazing layouts."
+    "title": "Thank You for Learning Flexbox!"
   }
 ]

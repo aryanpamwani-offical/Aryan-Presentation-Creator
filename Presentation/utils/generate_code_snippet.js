@@ -288,6 +288,23 @@ async function generateAllSnippets(options = {}) {
             return;
         }
 
+        // --- OPTIMIZATION: Identify slides that actually need updates FIRST ---
+        const slidesToUpdate = codeSlides.filter(slide => {
+            // If manual override or missing URL, we need to update
+            if (!slide.imageUrl || (!slide.imageUrl.includes('drive.google.com') && !slide.imageUrl.startsWith('http'))) {
+                return true;
+            }
+            return false;
+        });
+
+        if (slidesToUpdate.length === 0) {
+            console.log("\n✅ All code snippets already have valid URLs. Skipping generation.");
+            return; // EXIT EARLY - NO BROWSER LAUNCH
+        }
+
+        console.log(`\n⚡ ${slidesToUpdate.length} slide(s) need updated snippets. Launching browser...`);
+
+
         // Authenticate Google Drive
         let authClient;
         try {
@@ -318,10 +335,10 @@ async function generateAllSnippets(options = {}) {
 
         // Helper to process a single slide
         const processSlide = async (slide) => {
-            // Robust Skip Logic: Check if valid Drive URL exists
+            // Double check (though we filtered already, good for robustness if we change logic later)
             if (slide.imageUrl && (slide.imageUrl.includes('drive.google.com') || slide.imageUrl.startsWith('http'))) {
-                console.log(`⏭️  Skipping Slide ${slide.slide_number} (Already has valid URL)`);
-                return false; // No update needed
+                // Should not happen for slidesToUpdate but safe to keep
+                return false;
             }
 
             try {
@@ -379,10 +396,10 @@ async function generateAllSnippets(options = {}) {
             return false;
         };
 
-        // Batch Processing
-        for (let i = 0; i < codeSlides.length; i += CONCURRENCY_LIMIT) {
-            const batch = codeSlides.slice(i, i + CONCURRENCY_LIMIT);
-            console.log(`\n--- Processing Batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1}/${Math.ceil(codeSlides.length / CONCURRENCY_LIMIT)} ---`);
+        // Batch Processing - ONLY operate on slidesToUpdate
+        for (let i = 0; i < slidesToUpdate.length; i += CONCURRENCY_LIMIT) {
+            const batch = slidesToUpdate.slice(i, i + CONCURRENCY_LIMIT);
+            console.log(`\n--- Processing Batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1}/${Math.ceil(slidesToUpdate.length / CONCURRENCY_LIMIT)} ---`);
 
             // Run batch in parallel
             const results = await Promise.all(batch.map(slide => processSlide(slide)));

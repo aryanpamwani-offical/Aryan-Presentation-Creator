@@ -1,6 +1,5 @@
 import { createSlideIds } from "../constants/theme/generateId.js";
 import THEME_COLORS from "../constants/theme/theme_colors.js";
-import { manageCodeSnippets } from "./snippet_manager.js";
 
 import buildTitleSlide from "./slide_builders/title_slide.js";
 import buildThankYouSlide from "./slide_builders/thank_you_slide.js";
@@ -10,17 +9,14 @@ import buildScreenshotTutorialSlide from "./slide_builders/screenshot_tutorial_s
 import buildNotesSlide from "./slide_builders/notes_slide.js";
 import { loadSlidesData } from "./slide_builders/slideData.js";
 
-
-
-
-
 const buildPresentation = async (defaultSlideId) => {
   const requests = [];
   const slideIds = [];
 
   // --- 0. Interactive Code Snippet Generation ---
-  // This updates presentation.json on disk if user chooses to generate
-  await manageCodeSnippets();
+  // Moved to index.js for better control
+  // await manageCodeSnippets();
+
 
   // Load fresh data after potential updates
   const slidesData = loadSlidesData();
