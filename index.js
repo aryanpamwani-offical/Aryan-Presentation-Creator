@@ -1,6 +1,7 @@
 import createSlides from "./Presentation/core/index.js";
 import ai_core from "./Presentation/ai-core/index.js";
 import { manageCodeSnippets } from "./Presentation/core/snippet_manager.js";
+import exportPresentationToPDF from "./Presentation/utils/export_pdf.js"; // Import new PDF util
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
@@ -33,14 +34,25 @@ async function main() {
         // Pass the ai_response (which will be null if the file existed)
         const slides = await createSlides(ai_response);
 
-        // createSlides might return a function or the response directly depending on implementation
-        // Based on previous view_file of Presentation/core/index.js (Step 15), it returns `response` object.
-        // But the original index.js had this check:
         if (typeof slides === 'function') {
             await slides();
         }
 
-        console.log("Process completed successfully.");
+        // --- NEW: Export to PDF ---
+        if (slides && slides.data && slides.data.presentationId) {
+            const pId = slides.data.presentationId;
+            const pTitle = slides.data.title || "Presentation";
+            // Clean title for filename potentially?
+            const safeTitle = pTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const fileName = `${safeTitle}.pdf`;
+
+            console.log(`\n🎉 Presentation Created: https://docs.google.com/presentation/d/${pId}/edit`);
+
+            // Export
+            await exportPresentationToPDF(pId, fileName);
+        } else {
+            console.log("Process completed successfully.");
+        }
 
     } catch (error) {
         console.error("An error occurred:", error);

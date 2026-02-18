@@ -32,7 +32,7 @@ const buildConceptSlide = (slideId, slideElements, slideData) => {
     );
 
     // Move title down slightly
-    titleTransform.translateY += 30;
+    titleTransform.translateY += 10; // Reduced from 30
 
     requests.push({
         createShape: {
@@ -66,7 +66,7 @@ const buildConceptSlide = (slideId, slideElements, slideData) => {
             scaleX: 1,
             scaleY: 1,
             translateX: titleTransform.translateX,
-            translateY: titleTransform.translateY + titleHeight + 15, // Reduced gap from 30 to 15
+            translateY: titleTransform.translateY + titleHeight + 5, // Reduced gap from 15 to 5
             unit: "PT"
         };
 

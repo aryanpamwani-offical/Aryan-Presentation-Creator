@@ -4,6 +4,7 @@ import {
     updateParagraphStyle
 } from "../../utils/text_utils.js";
 
+import estimateTextHeight from "../../config/dimension_calculator/textbox-height-calculator.js";
 import compress_image_upload from "../../utils/compress_image_upload.js";
 import { updateSlideImage } from "./slideData.js";
 
@@ -16,8 +17,8 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
     const { title, subtitle, localImagePath, image, imageUrl } = slideData;
     const titleText = title || "Untitled Presentation";
 
-  
-  
+
+
 
     // 1. Large Accent Shape (Top Right Dynamic)
     const shape1Id = titleElements.title + "_shape1";
@@ -171,7 +172,8 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
 
     // Title
     const titleMaxWidth = 300;
-    const titleEstHeight = 200; // Allow 2-3 lines
+    // Calculate actual height based on text content
+    const titleEstHeight = estimateTextHeight(titleText, 48, titleMaxWidth);
     const textStartX = 70; // Next to accent stripe
     let textStartY = 110;
 
@@ -219,10 +221,8 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
     if (subtitle) {
         const subtitleId = titleElements.title + "_sub";
         const subHeight = 80;
-        // Position below title. Hard to know exact line count without measuring, 
-        // but we push it down significantly to be safe or overlap bottom.
-        // Let's assume title takes ~140pt
-        const subY = textStartY + 140;
+        // Position below title dynamically
+        const subY = textStartY + titleEstHeight + 35;
 
         requests.push({
             createShape: {
@@ -234,7 +234,7 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
                     transform: {
                         scaleX: 1,
                         scaleY: 1,
-                        translateX: textStartX,
+                        translateX: textStartX ,
                         translateY: subY,
                         unit: "PT"
                     },

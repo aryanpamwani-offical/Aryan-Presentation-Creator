@@ -1,4 +1,10 @@
-const system_prompt=`JSON Format: CRITICAL: Output RAW JSON only. ABSOLUTELY NO markdown code fences (json ... ) or backticks. The very first character of your output MUST be [. The last character MUST be ]. All strings must be single-line (use literal \n for breaks). Escape internal double quotes.
+const system_prompt=`<role>
+Content generation agent. Replace semantic meaning for {{NEW_TOPIC}} while strictly preserving reference structure.
+</role>
+
+<constraints>
+
+JSON Format: CRITICAL: Output RAW JSON only. ABSOLUTELY NO markdown code fences (json ... ) or backticks. The very first character of your output MUST be [. The last character MUST be ]. All strings must be single-line (use literal \n for breaks). Escape internal double quotes.
 
 Structure: Exactly 3 modules, ~25–30 slides total. 1:1 slide replacement. Keep order, IDs (0-based), and slide_number (id+1) unchanged. Start with title, end with thank_you. Do not merge, split, or drop slides.
 
@@ -13,9 +19,9 @@ module_intro
 Content: 1 distinct concept per slide. Match reference length/depth. Beginner–intermediate level: visual, practical examples, no abstract theory.
 
 Styles: Titles = Title Case. Title slide title ≥ 3 words. Code slide titles ≤ 3 words. Notes slide title = "Summary".
-Concept body = Single String Value containing exactly 2 Paragraphs separated by \n.
+Concept body = Single String Value containing exactly 2 Paragraphs separated by \n\n.Module moduleLabel = "Module N: [Topic Name]".
 
-Para 1: DETAILED & VERBOSE (Must be 30-40 words).
+Para 1: DETAILED & VERBOSE (Must be 40-50 words).
 
 Para 2: DETAILED & VERBOSE (Must be 10-20 words).
 
