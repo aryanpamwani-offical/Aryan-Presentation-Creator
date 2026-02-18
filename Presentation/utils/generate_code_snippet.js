@@ -128,6 +128,21 @@ function generateHTML(snippet, options = {}) {
 }
 
 /**
+ * Helper to retry a function
+ */
+async function retryOperation(operation, updatedParams = [], retries = 3, delay = 2000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await operation(...updatedParams);
+        } catch (error) {
+            if (i === retries - 1) throw error;
+            console.warn(`⚠️ Operation failed (attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`, error.message);
+            await new Promise(res => setTimeout(res, delay));
+        }
+    }
+}
+
+/**
  * Generates a code snippet image using Puppeteer
  * @param {object} snippet - Snippet data with codeblock, slide_number, etc.
  * @returns {Promise<string>} Path to generated image
@@ -162,16 +177,25 @@ async function generateCodeSnippet(snippet, options = {}, browserInstance = null
         // Initial large viewport to allow rendering
         await page.setViewport({ width: 1600, height: 1600, deviceScaleFactor: 2 });
 
-        // Set content and wait for network idle (scripts loaded)
-        await page.setContent(html, {
-            waitUntil: 'networkidle0',
-            timeout: 0
-        });
-        // Wait for fonts to load
-        await page.evaluateHandle('document.fonts.ready');
+        // Set content with strict timeout to prevent hanging
+        try {
+            await page.setContent(html, {
+                waitUntil: 'networkidle0', // 'domcontentloaded' might be faster but networkidle0 ensures font/tailwind load
+                timeout: 30000 // 30s timeout
+            });
+        } catch (e) {
+            console.warn(`⚠️ Page load timeout for slide ${snippet.slide_number}, trying to proceed anyway...`);
+        }
 
-        // Give extra time for rendering
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait for fonts to load explicitly
+        try {
+            await page.evaluateHandle('document.fonts.ready');
+        } catch (e) {
+            // Ignore if it times out, might be fine
+        }
+
+        // Give extra time for rendering (short buffer)
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Get the bounding box of the snippet container dynamically
         const dimensions = await page.evaluate(() => {
@@ -270,112 +294,115 @@ async function generateAllSnippets(options = {}) {
             authClient = await AuthWithGoogle();
         } catch (e) {
             console.error("❌ Failed to authenticate with Google:", e);
-            // Fallback or exit? If upload is required, exit.
-            // But lets try to generate locally at least.
+            // We might still want to generate local images even if auth fails
         }
 
-        // Launch browser once
+        // Launch browser once for all slides
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
 
         let updatedCount = 0;
+        const CONCURRENCY_LIMIT = 5;
 
-        for (const slide of slides) {
-            if (slide.type === 'code' && slide.codeblock) {
-                try {
-                    console.log(`Processing slide ${slide.slide_number}...`);
+        // Save helper
+        const saveProgress = () => {
+            const saveSuccess = saveJSONFile(JSON.stringify(slides, null, 4));
+            if (saveSuccess) {
+                // console.log("💾 presentation.json updated.");
+            } else {
+                console.error("❌ Failed to save presentation.json progress.");
+            }
+        };
 
-                    // Generate local image
-                    const imagePath = await generateCodeSnippet(slide, options, browser);
-                    slide.image = imagePath; // Update presentation.json with absolute path (fallback)
+        // Helper to process a single slide
+        const processSlide = async (slide) => {
+            // Robust Skip Logic: Check if valid Drive URL exists
+            if (slide.imageUrl && (slide.imageUrl.includes('drive.google.com') || slide.imageUrl.startsWith('http'))) {
+                console.log(`⏭️  Skipping Slide ${slide.slide_number} (Already has valid URL)`);
+                return false; // No update needed
+            }
 
-                    // Upload logic
-                    if (authClient) {
-                        // Compress image
-                        const baseImageDir = path.dirname(imagePath);
-                        const tempDir = path.join(baseImageDir, 'temp_storage');
-                        if (!fs.existsSync(tempDir)) {
-                            fs.mkdirSync(tempDir, { recursive: true });
-                        }
+            try {
+                console.log(`Processing slide ${slide.slide_number}...`);
 
-                        let uploadPath = imagePath;
-                        try {
-                            // Just compress, don't resize (keep dynamic dimensions)
-                            const compressedPath = await resizeAndSaveImage(imagePath, tempDir, 'SkipResize'); // We'll handle 'SkipResize' in utils or just assume it defaults
-                            if (compressedPath) {
-                                console.log(`Using compressed image: ${path.basename(compressedPath)}`);
-                                uploadPath = compressedPath;
-                            }
-                        } catch (compErr) {
-                            console.warn("Compression failed, using original:", compErr.message);
-                        }
+                // Generate local image (with timeout protection via generateCodeSnippet)
+                const imagePath = await generateCodeSnippet(slide, options, browser);
+                slide.image = imagePath;
 
-                        console.log(`Uploading ${path.basename(uploadPath)} to Drive...`);
-                        const imageUrl = await uploadImageToDrive(authClient, uploadPath);
-
-                        if (imageUrl) {
-                            console.log(`☁ Uploaded: ${imageUrl}`);
-                            slide.imageUrl = imageUrl;
-
-                            // Cleanup: Delete the compressed temp file
-                            if (uploadPath && fs.existsSync(uploadPath)) {
-                                try {
-                                    fs.unlinkSync(uploadPath);
-                                    console.log(`Deleted temp file: ${path.basename(uploadPath)}`);
-                                } catch (e) {
-                                    console.warn(`Failed to delete temp file ${path.basename(uploadPath)}:`, e.message);
-                                }
-                            }
-
-                            // Cleanup: Delete the original generated file in code_snippets
-                            if (imagePath && fs.existsSync(imagePath)) {
-                                try {
-                                    fs.unlinkSync(imagePath);
-                                    console.log(`Deleted local file: ${path.basename(imagePath)}`);
-                                } catch (e) {
-                                    console.warn(`Failed to delete local file ${path.basename(imagePath)}:`, e.message);
-                                }
-                            }
-
-                        } else {
-                            console.warn("Failed to get imageUrl from upload.");
-                        }
-
-                        // Cleanup temp compressed file
-                        if (uploadPath !== imagePath && fs.existsSync(uploadPath)) {
-                            // fs.unlinkSync(uploadPath); // strict cleanup might be safer later
-                        }
-
-                    } else {
-                        console.warn("Skipping upload due to auth failure.");
+                // Upload logic
+                if (authClient) {
+                    // Compress image
+                    const baseImageDir = path.dirname(imagePath);
+                    const tempDir = path.join(baseImageDir, 'temp_storage');
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
                     }
 
-                    updatedCount++;
-                } catch (err) {
-                    console.error(`Failed to handle slide ${slide.slide_number}`, err);
+                    let uploadPath = imagePath;
+                    try {
+                        const compressedPath = await resizeAndSaveImage(imagePath, tempDir, 'SkipResize');
+                        if (compressedPath) {
+                            uploadPath = compressedPath;
+                        }
+                    } catch (compErr) {
+                        console.warn("Compression failed, using original:", compErr.message);
+                    }
+
+                    // Upload with Retry
+                    console.log(`Uploading ${path.basename(uploadPath)}...`);
+                    const imageUrl = await retryOperation(uploadImageToDrive, [authClient, uploadPath], 3, 2000);
+
+                    if (imageUrl) {
+                        console.log(`☁ Uploaded: ${imageUrl}`);
+                        slide.imageUrl = imageUrl;
+
+                        // Cleanup temp files
+                        try {
+                            if (uploadPath !== imagePath && fs.existsSync(uploadPath)) fs.unlinkSync(uploadPath);
+                            if (imagePath && fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+                        } catch (cleanupErr) {
+                            // ignore
+                        }
+
+                        return true; // Updated
+                    } else {
+                        console.warn(`⚠️ Upload returned no URL for slide ${slide.slide_number}`);
+                    }
+                } else {
+                    console.warn("Skipping upload (No Auth)");
                 }
+            } catch (err) {
+                console.error(`❌ Failed to process slide ${slide.slide_number}:`, err.message);
+            }
+            return false;
+        };
+
+        // Batch Processing
+        for (let i = 0; i < codeSlides.length; i += CONCURRENCY_LIMIT) {
+            const batch = codeSlides.slice(i, i + CONCURRENCY_LIMIT);
+            console.log(`\n--- Processing Batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1}/${Math.ceil(codeSlides.length / CONCURRENCY_LIMIT)} ---`);
+
+            // Run batch in parallel
+            const results = await Promise.all(batch.map(slide => processSlide(slide)));
+
+            // Check if any updates in this batch
+            if (results.some(r => r)) {
+                updatedCount += results.filter(r => r).length;
+                saveProgress(); // Incremental save after batch
+                console.log("💾 Batch progress saved.");
             }
         }
 
         if (updatedCount > 0) {
-            console.log(`\n✨ Successfully processed ${updatedCount} code snippet(s)!`);
-            // Save updated presentation.json
-            const saveSuccess = saveJSONFile(JSON.stringify(slides, null, 4));
-            if (saveSuccess) {
-                console.log("✅ Updated presentation.json saved successfully.");
-            } else {
-                console.error("❌ Failed to save updated presentation.json.");
-            }
-
+            console.log(`\n✨ Successfully updated ${updatedCount} code snippet(s)!`);
         } else {
-            console.log("\nNo changes made.");
+            console.log("\n✅ No new updates required.");
         }
 
     } catch (error) {
         console.error('❌ Error in generateAllSnippets:', error);
-        process.exit(1);
     } finally {
         if (browser) await browser.close();
     }

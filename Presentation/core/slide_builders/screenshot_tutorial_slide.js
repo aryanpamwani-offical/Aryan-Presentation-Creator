@@ -12,8 +12,16 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     const requests = [];
     const { title, image, caption, imageUrl, description } = slideData;
 
-    // Use imageUrl if provided, fallback to image
-    const finalImageUrl = imageUrl || image;
+    // Use imageUrl if provided and valid
+    let finalImageUrl = imageUrl;
+    if (!finalImageUrl && image && (image.startsWith("http://") || image.startsWith("https://"))) {
+        finalImageUrl = image;
+    }
+    // Explicitly ignore local paths for API calls
+    if (finalImageUrl && !finalImageUrl.startsWith("http")) {
+        finalImageUrl = null;
+    }
+
     // Use description if provided, fallback to caption
     const finalCaption = description || caption;
 

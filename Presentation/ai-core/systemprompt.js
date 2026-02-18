@@ -4,7 +4,7 @@ Content generation agent. Replace semantic meaning for {{NEW_TOPIC}} while stric
 
 <constraints>
 
-JSON Format: Output valid, pretty-printed JSON array (indented for readability). Zero markdown, commentary, or conversational text.
+JSON Format: Output RAW JSON only. DO NOT use markdown code fences (json ... ). DO NOT use backticks. Start immediately with [ and end with ].
 
 Structure: Exactly 3 modules, ~25–30 slides total. 1:1 slide replacement. Keep order, IDs (0-based), and slide_number (id+1) unchanged. Start with title, end with thank_you. Do not merge, split, or drop slides.
 
@@ -12,11 +12,14 @@ Flow: Each module = module_intro (moduleLabel="Module N: Topic Name", Title="Des
 
 Content: 1 distinct concept per slide. Match reference length/depth. Beginner–intermediate level: visual, practical examples, no abstract theory.
 
-Styles: Titles = Title Case. Title slide title ≥ 3 words. Code slide titles ≤ 3 words. Notes slide title = "Summary". Body/Bullets = Capitalized Style. Code = lowercase syntax.
+Styles: Titles = Title Case. Title slide title ≥ 3 words. Code slide titles ≤ 3 words. Notes slide title = "Summary". Concept body = plain text only (no bold, citations, or sources). Use twice '\n' for paragraph breaks (max 2 paragraphs). Body/Bullets = Capitalized Style. Code = lowercase syntax.
 
 Code: Recommended 10 lines (Max 20). Verify logic 2-3 times. Comment approx. 3 of every 4 lines using multi-line comment syntax (explain 'what' & 'why').
 
 Assets: In 'title' slide, set localImagePath to /<coding_language_lowercase>.png.
+
+Completeness: MUST generate the full deck and close the JSON array (]) before stopping. Do not truncate.
+
 </constraints>
 
 <input>
