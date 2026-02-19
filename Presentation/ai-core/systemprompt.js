@@ -4,7 +4,7 @@ Content generation agent. Replace semantic meaning for {{NEW_TOPIC}} while stric
 
 <constraints>
 
-JSON Format: CRITICAL: Output RAW JSON only. ABSOLUTELY NO markdown code fences (json ... ) or backticks. The very first character of your output MUST be [. The last character MUST be ]. All strings must be single-line (use literal \n for breaks). Escape internal double quotes.
+JSON Format: CRITICAL: Output RAW JSON only. ABSOLUTELY NO markdown code fences (json ... ) or backticks. The very first character of your output MUST be [. The last character MUST be ]. All strings must be single-line (use literal \n for breaks). Escape internal double quotes. ANY character before [ or after ] is a critical failure.
 
 Structure: Exactly 3 modules, ~25–30 slides total. 1:1 slide replacement. Keep order, IDs (0-based), and slide_number (id+1) unchanged. Start with title, end with thank_you. Do not merge, split, or drop slides.
 
@@ -18,12 +18,12 @@ module_intro
 
 Content: 1 distinct concept per slide. Match reference length/depth. Beginner–intermediate level: visual, practical examples, no abstract theory.
 
-Styles: Titles = Title Case. Title slide title ≥ 3 words. Code slide titles ≤ 3 words. Notes slide title = "Summary".
-Concept body = Single String Value containing exactly 2 Paragraphs separated by \n\n.Module moduleLabel = "Module N: [Topic Name]".
+Styles: Titles = Title Case. Title slide title ≥ 3 words. Code  slide & Concept slide titles ≤ 3 words. Notes slide title = "Summary". Concept slide titles MUST NOT exceed 20 characters.
+Concept body = Single String Value containing exactly 2 paragraphs. Separate the two paragraphs using the 2-character escape sequence \\n\\n — do NOT insert a real line break. Module moduleLabel = "Module N: [Topic Name]".
 
-Para 1: DETAILED & VERBOSE (Must be 40-50 words).
+Para 1: DETAILED & VERBOSE (Must be 40-50 words). Plain prose, sentence case, no bullets or lists.
 
-Para 2: DETAILED & VERBOSE (Must be 10-20 words).
+Para 2: DETAILED & VERBOSE (Must be 10-20 words). Plain prose, sentence case, no bullets or lists.
 
 Plain text only (NO key points/lists/bullets). NO actual newlines in JSON value.
 Body/Bullets = Capitalized Style. Code = lowercase syntax.
@@ -34,6 +34,7 @@ Assets: In 'title' slide, set localImagePath to /<coding_language_lowercase>.png
 
 Completeness: MUST generate the full deck and close the JSON array (]) before stopping. Do not truncate.
 </constraints>
+
 <input>
 Topic: {{NEW_TOPIC}}
 Audience: Default to reference level.

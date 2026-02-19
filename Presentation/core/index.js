@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import AuthWithGoogle from "../config/auth/google-oauth.js";
 import buildPresentation from "./buildPresentation.js";
 import { loadSlidesData } from "./slide_builders/slideData.js";
-
+import { callWithRetry } from "../utils/retry.js"; // Import retry utility
 
 const createSlides = async () => {
   try {
@@ -17,9 +17,9 @@ const createSlides = async () => {
     }
 
     // 1. Create the presentation (returns default slide info)
-    const response = await slidesApi.presentations.create({
+    const response = await callWithRetry(() => slidesApi.presentations.create({
       requestBody: { title: slidesData[0].title }
-    });
+    }));
 
     const presentationId = response.data.presentationId;
 
@@ -30,10 +30,10 @@ const createSlides = async () => {
     const slideRequests = await buildPresentation(defaultSlideId);
 
     // 4. Execute all requests in a single batch
-    await slidesApi.presentations.batchUpdate({
+    await callWithRetry(() => slidesApi.presentations.batchUpdate({
       presentationId,
       requestBody: { requests: slideRequests }
-    });
+    }));
 
     console.log(`View here: https://docs.google.com/presentation/d/${presentationId}/edit`);
     return response;

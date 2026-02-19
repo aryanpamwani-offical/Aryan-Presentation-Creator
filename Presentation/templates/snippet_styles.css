@@ -28,6 +28,7 @@ body {
     align-items: stretch;
     justify-content: stretch;
     background: #111827;
+    border-radius: 10px;
     /* Opaque background (gray-900) to remove transparency */
 }
 
@@ -49,12 +50,12 @@ body {
     min-width: 0;
     background: rgba(0, 0, 0, 0.75) !important;
     /* Opaque interior (gray-800) */
-    border: 2px solid rgba(107, 114, 128, 0.4) !important;
+    border: none !important;
     border-radius: 0;
     /* Remove radius to fill corners fully or keep? User said NO transparent space */
     /* If we keep radius, the container background (#111827) shows in corners. This is good (no alpha). */
     overflow: hidden;
-    box-shadow: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
     /* Shadow might need space? Remove to be safe */
     display: flex;
     flex-direction: column;
