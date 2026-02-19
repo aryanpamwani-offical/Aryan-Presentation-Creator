@@ -1,7 +1,7 @@
 import createSlides from "./Presentation/core/index.js";
 import ai_core from "./Presentation/ai-core/index.js";
 import { manageCodeSnippets } from "./Presentation/core/snippet_manager.js";
-import exportPresentationToPDF from "./Presentation/utils/export_pdf.js"; // Import new PDF util
+import exportPresentationToPDF from "./Presentation/utils/export_pdf.js"; 
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';

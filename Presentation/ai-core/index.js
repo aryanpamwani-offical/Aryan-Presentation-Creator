@@ -21,6 +21,7 @@ export default async function ai_core() {
     const completion = await callWithRetry(() => openai.chat.completions.create({
       model: process.env.MODEL,
       temperature: 0.7,
+      max_completion_tokens: 8000,
       defaultHeaders: {
         "HTTP-Referer": "http://localhost:3000", // required by OpenRouter
         "X-Title": "My Presentation App",
