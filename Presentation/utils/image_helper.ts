@@ -62,7 +62,7 @@ export const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code
   // Use native Bun.Image if running on Bun
   if (typeof Bun !== 'undefined') {
     const file = Bun.file(inputPath);
-    const image = file.image().resize(width, height, { fit: 'contain' } as any);
+    const image = file.image().resize(width, height, { fit: 'inside' });
     if (inputPath.toLowerCase().endsWith('.png')) {
       await image.png().write(outputPath);
     } else {

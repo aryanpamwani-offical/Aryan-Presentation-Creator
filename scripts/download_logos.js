@@ -14,7 +14,9 @@ const logos = {
   ruby: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/ruby/ruby.png',
   php: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/php/php.png',
   swift: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/swift/swift.png',
-  kotlin: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/kotlin/kotlin.png'
+  kotlin: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/kotlin/kotlin.png',
+  java: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/java/java.png',
+  css: 'https://cdn.jsdelivr.net/npm/programming-languages-logos/src/html/html.png'
 };
 
 const downloadFile = (url, dest) => {

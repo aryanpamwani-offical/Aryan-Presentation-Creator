@@ -1,5 +1,5 @@
 export const THEME_COLORS = {
-  bg: { red: 0.06, green: 0.00, blue: 0.00 },
+  bg: { red: 0.00, green: 0.00, blue: 0.00 },
   text: { red: 0.88, green: 0.88, blue: 0.88 },
   accent: { red: 0.26, green: 0.52, blue: 0.96 },
   secondaryText: { red: 0.6, green: 0.6, blue: 0.6 },
@@ -69,7 +69,7 @@ export const slideTypes = {
   }
 };
 
-export const globalSlides = (title, subtitle, imagePath) => {
+export const globalSlides = (title: string | null, subtitle: string | null, imagePath: string | null) => {
   return {
     titleSlide: {
       template: "title",
@@ -84,15 +84,15 @@ export const globalSlides = (title, subtitle, imagePath) => {
   };
 };
 
-const generateId = (prefix) => {
+const generateId = (prefix: string) => {
   const timestamp = Date.now().toString(36);
-  const randomPart = Math.random().toString(36).substr(2, 5);
+  const randomPart = Math.random().toString(36).substring(2, 7);
   return `${prefix}_${timestamp}_${randomPart}`;
 };
 
-export const createSlideIds = (slideType) => {
+export const createSlideIds = (slideType: string) => {
   const pageId = generateId(`${slideType.toUpperCase()}_PAGE`);
-  const elements = {};
+  const elements: Record<string, string> = {};
   const lowerType = slideType.toLowerCase();
 
   if (lowerType === 'concept') {

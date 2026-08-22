@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -15,9 +16,7 @@ const MEDIA_DIR = path.join(__dirname, "Presentation", "media", "json");
 const JSON_FILE = path.join(MEDIA_DIR, "presentation.json");
 const OUTLINE_FILE = path.join(MEDIA_DIR, "outline.json");
 
-const TOPIC = "CSS Flexbox Properties  module 1: flexbox introduction, display: flex, main axis and cross axis, flex container and flex items . module 2: Flexbox Parent properties, flex-direction, flex-wrap, flex-flow, justify-content, align-items, align-content . module 3: Flexbox child properties, order, flex-grow, flex-shrink, flex-basis, flex shorthand, align-self . ";
-
-
+const DEFAULT_TOPIC = "CSS Flexbox Properties  module 1: flexbox introduction, display: flex, main axis and cross axis, flex container and flex items . module 2: Flexbox Parent properties, flex-direction, flex-wrap, flex-flow, justify-content, align-items, align-content . module 3: Flexbox child properties, order, flex-grow, flex-shrink, flex-basis, flex shorthand, align-self . ";
 
 function ensureGeminiKey() {
     if (!process.env.GEMINI_API_KEY) {
@@ -26,13 +25,69 @@ function ensureGeminiKey() {
     }
 }
 
-async function ensureGenerated(filePath: string, label: string, mode: string) {
+function manageTopicCache(topic: string, isForce: boolean) {
+    const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_+|_+$)/g, '');
+    const lastTopicPath = path.join(MEDIA_DIR, "last_topic.txt");
+    
+    let lastTopic = "";
+    if (fs.existsSync(lastTopicPath)) {
+        lastTopic = fs.readFileSync(lastTopicPath, 'utf8').trim();
+    }
+    
+    const currentOutlineCache = path.join(MEDIA_DIR, `outline_cache_${slug}.json`);
+    const currentJsonCache = path.join(MEDIA_DIR, `presentation_cache_${slug}.json`);
+
+    if (isForce) {
+        console.log(`\n🔄 Force flag passed. Deleting cache files for topic: "${topic}"...`);
+        if (fs.existsSync(currentOutlineCache)) fs.unlinkSync(currentOutlineCache);
+        if (fs.existsSync(currentJsonCache)) fs.unlinkSync(currentJsonCache);
+        if (fs.existsSync(OUTLINE_FILE)) fs.unlinkSync(OUTLINE_FILE);
+        if (fs.existsSync(JSON_FILE)) fs.unlinkSync(JSON_FILE);
+        fs.writeFileSync(lastTopicPath, topic, 'utf8');
+        return;
+    }
+    
+    if (lastTopic === topic) {
+        return;
+    }
+    
+    // Backup current files to last topic's cache
+    if (lastTopic) {
+        const lastSlug = lastTopic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_+|_+$)/g, '');
+        if (fs.existsSync(OUTLINE_FILE)) {
+            fs.copyFileSync(OUTLINE_FILE, path.join(MEDIA_DIR, `outline_cache_${lastSlug}.json`));
+        }
+        if (fs.existsSync(JSON_FILE)) {
+            fs.copyFileSync(JSON_FILE, path.join(MEDIA_DIR, `presentation_cache_${lastSlug}.json`));
+        }
+    }
+    
+    // Restore new topic's cache if it exists, otherwise delete active files to trigger generation
+    if (fs.existsSync(currentOutlineCache)) {
+        fs.copyFileSync(currentOutlineCache, OUTLINE_FILE);
+        console.log(`♻️  Restored outline cache for topic: "${topic}"`);
+    } else if (fs.existsSync(OUTLINE_FILE)) {
+        fs.unlinkSync(OUTLINE_FILE);
+    }
+    
+    if (fs.existsSync(currentJsonCache)) {
+        fs.copyFileSync(currentJsonCache, JSON_FILE);
+        console.log(`♻️  Restored presentation cache for topic: "${topic}"`);
+    } else if (fs.existsSync(JSON_FILE)) {
+        fs.unlinkSync(JSON_FILE);
+    }
+    
+    // Write new topic as last_topic
+    fs.writeFileSync(lastTopicPath, topic, 'utf8');
+}
+
+async function ensureGenerated(filePath: string, label: string, mode: string, topic: string) {
     if (await Bun.file(filePath).exists()) {
         console.log(`✅ ${label} found. Skipping generation.`);
         return;
     }
     console.log(`📝 ${label} not found. Generating...`);
-    const success = await google_ai_core(mode, TOPIC);
+    const success = await google_ai_core(mode, topic);
     if (!success) {
         console.error(`❌ Failed to generate ${label}. Aborting.`);
         process.exit(1);
@@ -69,6 +124,19 @@ async function main() {
     try {
         const tTotal = performance.now();
 
+        // 1. Resolve dynamic topic and force flags from CLI arguments
+        const args = process.argv.slice(2);
+        const isForce = args.includes('--force');
+        const topicArgs = args.filter(arg => arg !== '--force');
+        const cliTopic = topicArgs.join(' ').trim();
+        
+        const activeTopic = cliTopic || DEFAULT_TOPIC;
+        
+        console.log(`\n📚 Active Topic: "${activeTopic}"`);
+
+        // 2. Initialize cache state for the active topic
+        manageTopicCache(activeTopic, isForce);
+
         // Authenticate once — reused across all steps
         const tAuth = performance.now();
         const auth = await AuthWithGoogle();
@@ -76,8 +144,8 @@ async function main() {
 
         ensureGeminiKey();
 
-        await ensureGenerated(OUTLINE_FILE, "outline.json", "outline");
-        await ensureGenerated(JSON_FILE, "presentation.json", "presentation");
+        await ensureGenerated(OUTLINE_FILE, "outline.json", "outline", activeTopic);
+        await ensureGenerated(JSON_FILE, "presentation.json", "presentation", activeTopic);
 
         const tSnippets = performance.now();
         await manageCodeSnippets();
