@@ -5,7 +5,7 @@
  */
 import os from 'os';
 import path from 'path';
-import type { Slide } from '../types/index.ts';
+import type { CodeSlide, RenderOptions } from '../types/index.ts';
 
 const WORKER_PATH = path.resolve(process.cwd(), 'Presentation', 'utils', 'snippet_render_worker.ts');
 
@@ -16,10 +16,10 @@ const WORKER_PATH = path.resolve(process.cwd(), 'Presentation', 'utils', 'snippe
  * @returns - Array of { slide, outputPath, error } results
  */
 export async function renderWithWorkerPool(
-    slides: Slide[],
-    options: Record<string, any> = {},
-    onSlideRendered: ((slide: Slide, outputPath: string) => void) | null = null
-): Promise<Array<{ slide: Slide; outputPath: string | null; error: string | null }>> {
+    slides: CodeSlide[],
+    options: RenderOptions = {},
+    onSlideRendered: ((slide: CodeSlide, outputPath: string) => void) | null = null
+): Promise<Array<{ slide: CodeSlide; outputPath: string | null; error: string | null }>> {
     const cpuCount = os.cpus().length;
     const poolSize = Math.min(cpuCount, slides.length);
 
@@ -43,14 +43,14 @@ export async function renderWithWorkerPool(
     const warmMs = (performance.now() - warmStart).toFixed(0);
     console.log(`  🔥 All ${poolSize} workers warmed up in ${warmMs}ms`);
 
-    const results: Array<{ slide: Slide; outputPath: string | null; error: string | null }> = new Array(slides.length);
+    const results: Array<{ slide: CodeSlide; outputPath: string | null; error: string | null }> = new Array(slides.length);
     const slideTimes = new Array(slides.length).fill(0); // ms per slide
     let taskIndex = 0;
     let doneCount  = 0;
 
     const poolStart = performance.now();
 
-    return new Promise<Array<{ slide: Slide; outputPath: string | null; error: string | null }>>((resolve) => {
+    return new Promise<Array<{ slide: CodeSlide; outputPath: string | null; error: string | null }>>((resolve) => {
         function assignNext(worker: Worker, workerIndex: number) {
             if (taskIndex >= slides.length) {
                 worker.terminate();

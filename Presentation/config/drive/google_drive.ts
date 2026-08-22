@@ -1,6 +1,6 @@
 import { existsSync, createReadStream, readFileSync, writeFileSync } from 'fs';
 import path from 'path';
-import { google } from 'googleapis';
+import { google, drive_v3 } from 'googleapis';
 
 let resolvedFolderId = null;
 let resolvedFolderPromise = null;
@@ -48,7 +48,7 @@ async function getOrCreateFolder(drive, name, parentId = null) {
     folderId = res.data.files[0].id;
   } else {
     // Create new folder
-    const fileMetadata: any = {
+    const fileMetadata: drive_v3.Schema$File = {
       name: name,
       mimeType: 'application/vnd.google-apps.folder',
     };

@@ -7,10 +7,11 @@ import fs from 'fs';
 import path from 'path';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { parse } from 'node-html-parser';
+import { parse, Node, HTMLElement } from 'node-html-parser';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
-import type { Slide } from '../types/index.ts';
+import type { CodeSlide, ThemeConfig, RenderOptions, SatoriNode } from '../types/index.ts';
+import { getErrorMessage } from '../types/index.ts';
 
 const FONT_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'font.ttf');
 
@@ -41,7 +42,7 @@ function getCachedCss(): string {
     return _snippetCss;
 }
 
-async function getCachedThemeCss(themeObj: any, themeKey: string): Promise<string> {
+async function getCachedThemeCss(themeObj: ThemeConfig, themeKey: string): Promise<string> {
     if (_themeCssCache.has(themeKey)) return _themeCssCache.get(themeKey);
 
     let themeCss = '';
@@ -135,28 +136,29 @@ function parseCssToMap(cssString: string): Record<string, Record<string, string>
     return map;
 }
 
-function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): any {
+function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): SatoriNode | null {
     const root = parse(htmlString.trim(), {
         blockTextElements: { script: true, noscript: true, style: true }
     });
 
-    function parseNode(node, inCode = false) {
+    function parseNode(node: Node, inCode = false): SatoriNode | string | null {
         if (node.nodeType === 3) {
             return inCode ? node.textContent : node.textContent.trim().replace(/\s+/g, ' ');
         }
         if (node.nodeType === 1) {
-            let type = node.tagName.toLowerCase();
-            const props: Record<string, any> = {};
-            const isCodeElement = type === 'pre' || type === 'code' || node.attributes.class?.includes('code-line');
+            const element = node as HTMLElement;
+            let type = element.tagName.toLowerCase();
+            const props: Record<string, unknown> = {};
+            const isCodeElement = type === 'pre' || type === 'code' || element.attributes.class?.includes('code-line');
             const nextInCode = inCode || isCodeElement;
             if (type === 'pre' || type === 'code') type = 'div';
 
             // Extract class list
-            const classAttr = node.attributes.class || '';
+            const classAttr = element.attributes.class || '';
             const classList = classAttr.split(/\s+/).filter(Boolean);
 
             // Apply base props from HTML
-            for (const [key, val] of Object.entries(node.attributes)) {
+            for (const [key, val] of Object.entries(element.attributes)) {
                 if (key === 'class') {
                     props.className = val;
                 } else if (key === 'style') {
@@ -175,44 +177,44 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
             }
 
             // Apply styles from CSS Map
-            props.style = props.style || {};
+            const style = (props.style || {}) as Record<string, string>;
             Object.keys(cssMap).forEach(selector => {
                 if (selector === type) {
-                    props.style = { ...props.style, ...cssMap[selector] };
+                    Object.assign(style, cssMap[selector]);
                 } else if (selector.startsWith('.')) {
                     const classes = selector.slice(1).split('.');
                     if (classes.every(cls => classList.includes(cls))) {
-                        props.style = { ...props.style, ...cssMap[selector] };
+                        Object.assign(style, cssMap[selector]);
                     }
                 }
             });
+            props.style = style;
 
             if (type === 'div') {
-                props.style = props.style || {};
-                if (!props.style.display) {
-                    props.style.display = 'flex';
-                    props.style.flexDirection = 'column';
+                if (!style.display) {
+                    style.display = 'flex';
+                    style.flexDirection = 'column';
                 }
             }
 
-            const children = node.childNodes
-                .map((child: any) => parseNode(child, nextInCode))
-                .filter((child: any) => {
+            const children = element.childNodes
+                .map((child: Node) => parseNode(child, nextInCode))
+                .filter((child): child is string | SatoriNode => {
                     if (typeof child === 'string') return nextInCode ? true : child.trim().length > 0;
                     return !!child;
                 });
             if (children.length > 0) {
                 props.children = children.length === 1 ? children[0] : children;
             }
-            return { type, props };
+            return { type, props } as SatoriNode;
         }
         return null;
     }
 
     const container = root.querySelector('.snippet-container');
-    if (container) return parseNode(container);
+    if (container) return parseNode(container) as SatoriNode;
     for (const child of root.childNodes) {
-        if (child.nodeType === 1) return parseNode(child);
+        if (child.nodeType === 1) return parseNode(child) as SatoriNode;
     }
     return null;
 }
@@ -230,7 +232,7 @@ const GRADIENTS: Record<string, string> = {
     ice:      'linear-gradient(to bottom right, #ffe4e6, #ccfbf1)'
 };
 
-async function renderSnippet(snippet: any, options: any = {}): Promise<string> {
+async function renderSnippet(snippet: CodeSlide, options: RenderOptions = {}): Promise<string> {
     const themeKey = options.theme || config.defaultTheme;
     const themeObj = config.themes[themeKey] || config.themes[config.defaultTheme];
 
@@ -286,8 +288,8 @@ async function renderSnippet(snippet: any, options: any = {}): Promise<string> {
             width: 800,
             fonts: [{ name: 'JetBrains Mono', data: fontBuffer, weight: 400, style: 'normal' }]
         });
-    } catch (err: any) {
-        throw new Error(`Satori failed for slide ${snippet.slide_number}: ${err.message}`);
+    } catch (err: unknown) {
+        throw new Error(`Satori failed for slide ${snippet.slide_number}: ${getErrorMessage(err)}`);
     }
 
     const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: 800 } });
@@ -317,17 +319,23 @@ self.onmessage = async (event: MessageEvent) => {
             getCachedCss();
             await getCachedThemeCss(themeObj, themeKey);
 
-            const dummySnippet = {
+            const dummySnippet: CodeSlide = {
+                id: 0,
                 slide_number: 0,
+                type: 'code',
+                title: '',
+                image: '',
+                imageUrl: '',
                 codeblock: 'const x = 1;',
-                language: 'javascript',
-                title: ''
+                codeTitle: '',
+                description: '',
+                language: 'javascript'
             };
             await renderSnippet(dummySnippet, options);
 
             self.postMessage({ type: 'init_done', success: true });
-        } catch (err: any) {
-            self.postMessage({ type: 'init_done', success: false, error: err.message });
+        } catch (err: unknown) {
+            self.postMessage({ type: 'init_done', success: false, error: getErrorMessage(err) });
         }
         return;
     }
@@ -335,8 +343,8 @@ self.onmessage = async (event: MessageEvent) => {
     try {
         const outputPath = await renderSnippet(snippet, options);
         self.postMessage({ taskId, success: true, outputPath });
-    } catch (err: any) {
-        self.postMessage({ taskId, success: false, error: err.message });
+    } catch (err: unknown) {
+        self.postMessage({ taskId, success: false, error: getErrorMessage(err) });
     }
 };
 

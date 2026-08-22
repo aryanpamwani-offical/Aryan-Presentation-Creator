@@ -112,3 +112,24 @@ export interface SnippetConfig {
   fonts: Record<string, FontConfig>;
   languagePatterns: Record<string, string>;
 }
+
+export interface RenderOptions {
+  theme?: string;
+  font?: string;
+  omitBackground?: boolean;
+}
+
+export interface SatoriNode {
+  type: string;
+  props: {
+    className?: string;
+    style?: Record<string, string | number>;
+    children?: string | SatoriNode | (string | SatoriNode)[];
+    [key: string]: unknown;
+  };
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}

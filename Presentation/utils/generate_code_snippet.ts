@@ -3,7 +3,7 @@ import path from 'path';
 import https from 'https';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
-import { parse } from 'node-html-parser';
+import { parse, Node, HTMLElement } from 'node-html-parser';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
 import saveJSONFile from '../ai-core/saveJSONFile.js';
@@ -11,6 +11,8 @@ import AuthWithGoogle from '../config/auth/google-oauth.js';
 import uploadImageToDrive from '../config/drive/google_drive.js';
 import resizeAndSaveImage from './image_helper.js';
 import { renderWithWorkerPool } from './snippet_worker_pool.js';
+import type { Slide, CodeSlide, RenderOptions, SatoriNode } from '../types/index.ts';
+import { getErrorMessage } from '../types/index.ts';
 
 const TAILWIND_LOCAL_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'tailwind.min.js');
 const FONT_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'font.ttf');
@@ -246,7 +248,7 @@ function parseCssToMap(cssString) {
     return map;
 }
 
-function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): any {
+function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): SatoriNode | null {
     const root = parse(htmlString.trim(), {
         blockTextElements: {
             script: true,
@@ -255,26 +257,27 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
         }
     });
     
-    function parseNode(node: any, inCode = false): any {
+    function parseNode(node: Node, inCode = false): SatoriNode | string | null {
         if (node.nodeType === 3) {
             return inCode ? node.textContent : node.textContent.trim().replace(/\s+/g, ' ');
         }
         
         if (node.nodeType === 1) {
-            let type = node.tagName.toLowerCase();
-            const props: Record<string, any> = {};
+            const element = node as HTMLElement;
+            let type = element.tagName.toLowerCase();
+            const props: Record<string, unknown> = {};
             
-            const isCodeElement = type === 'pre' || type === 'code' || node.attributes.class?.includes('code-line');
+            const isCodeElement = type === 'pre' || type === 'code' || element.attributes.class?.includes('code-line');
             const nextInCode = inCode || isCodeElement;
             
             if (type === 'pre' || type === 'code') {
                 type = 'div';
             }
 
-            const classAttr = node.attributes.class || '';
+            const classAttr = element.attributes.class || '';
             const classList = classAttr.split(/\s+/).filter(Boolean);
             
-            for (const [key, val] of Object.entries(node.attributes)) {
+            for (const [key, val] of Object.entries(element.attributes)) {
                 if (key === 'class') {
                     props.className = val;
                 } else if (key === 'style') {
@@ -293,29 +296,29 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
             }
 
             // Apply styles from CSS Map
-            props.style = props.style || {};
+            const style = (props.style || {}) as Record<string, string>;
             Object.keys(cssMap).forEach(selector => {
                 if (selector === type) {
-                    props.style = { ...props.style, ...cssMap[selector] };
+                    Object.assign(style, cssMap[selector]);
                 } else if (selector.startsWith('.')) {
                     const classes = selector.slice(1).split('.');
                     if (classes.every(cls => classList.includes(cls))) {
-                        props.style = { ...props.style, ...cssMap[selector] };
+                        Object.assign(style, cssMap[selector]);
                     }
                 }
             });
+            props.style = style;
             
             if (type === 'div') {
-                props.style = props.style || {};
-                if (!props.style.display) {
-                    props.style.display = 'flex';
-                    props.style.flexDirection = 'column';
+                if (!style.display) {
+                    style.display = 'flex';
+                    style.flexDirection = 'column';
                 }
             }
             
-            const children = node.childNodes
-                .map((child: any) => parseNode(child, nextInCode))
-                .filter((child: any) => {
+            const children = element.childNodes
+                .map((child: Node) => parseNode(child, nextInCode))
+                .filter((child): child is string | SatoriNode => {
                     if (typeof child === 'string') {
                         if (nextInCode) return true;
                         return child.trim().length > 0;
@@ -327,19 +330,20 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
                 props.children = children.length === 1 ? children[0] : children;
             }
             
-            return { type, props };
+            return { type, props } as SatoriNode;
         }
         
         return null;
+
     }
     
     const container = root.querySelector('.snippet-container');
     if (container) {
-        return parseNode(container);
+        return parseNode(container) as SatoriNode;
     }
     for (const child of root.childNodes) {
         if (child.nodeType === 1) {
-            return parseNode(child);
+            return parseNode(child) as SatoriNode;
         }
     }
     return null;
@@ -348,7 +352,10 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
 /**
  * Generates inline-styled HTML markup using highlight.js and juice
  */
-async function generateInlinedHTML(snippet: any, options: any = {}) {
+async function generateInlinedHTML(
+    snippet: CodeSlide,
+    options: RenderOptions = {}
+): Promise<{ htmlContent: string; cssMap: Record<string, Record<string, string>> }> {
     const themeKey = options.theme || config.defaultTheme;
     const fontKey = options.font || config.defaultFont;
 
@@ -414,7 +421,11 @@ async function generateInlinedHTML(snippet: any, options: any = {}) {
 /**
  * Generates a code snippet image using Satori + Resvg
  */
-export async function generateCodeSnippet(snippet, options = {}, browserInstance = null) {
+export async function generateCodeSnippet(
+    snippet: CodeSlide,
+    options: RenderOptions = {},
+    browserInstance: unknown = null
+): Promise<string> {
     await downloadFontIfNeeded();
 
     const { htmlContent, cssMap } = await generateInlinedHTML(snippet, options);
@@ -467,7 +478,7 @@ export async function generateCodeSnippet(snippet, options = {}, browserInstance
 /**
  * Main function to generate all code snippets from presentation.json, compress, and upload to Google Drive.
  */
-export async function generateAllSnippets(options = {}) {
+export async function generateAllSnippets(options: RenderOptions = {}): Promise<void> {
     try {
         const presentationJsonPath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
 
@@ -477,14 +488,14 @@ export async function generateAllSnippets(options = {}) {
         }
 
         const rawData = fs.readFileSync(presentationJsonPath, 'utf8');
-        let slides = JSON.parse(rawData);
+        let slides: Slide[] = JSON.parse(rawData);
 
         if (!Array.isArray(slides)) {
             console.error('❌ presentation.json is not an array!');
             return;
         }
 
-        const codeSlides = slides.filter(slide => slide.type === 'code' && slide.codeblock);
+        const codeSlides = slides.filter((slide): slide is CodeSlide => slide.type === 'code' && !!slide.codeblock);
         console.log(`\n📸 Found ${codeSlides.length} code slide(s) in presentation.json\n`);
 
         if (codeSlides.length === 0) {
@@ -519,7 +530,7 @@ export async function generateAllSnippets(options = {}) {
                     try {
                         const imageUrl = await uploadImageToDrive(authClient, outputPath, topicName);
                         if (imageUrl) {
-                            (slide as any).imageUrl = imageUrl;
+                            slide.imageUrl = imageUrl;
                             console.log(`✅ slide-${slide.slide_number}.png → ${imageUrl}`);
                         }
                         if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
@@ -536,7 +547,7 @@ export async function generateAllSnippets(options = {}) {
 
         // Normalise results shape to { slide, localImagePath, error }
         const renderResults = rawResults.map(r => {
-            if (r.outputPath) (r.slide as any).image = r.outputPath;
+            if (r.outputPath) r.slide.image = r.outputPath;
             return { slide: r.slide, localImagePath: r.outputPath, error: r.error };
         });
 
