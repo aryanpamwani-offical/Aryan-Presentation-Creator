@@ -110,7 +110,7 @@ body {
 }
 
 .code-wrapper {
-    padding: 0 1rem 1rem 1rem;
+    padding: 1.25rem 1rem 1rem 1rem;
     overflow: hidden;
     background: transparent;
     filter: brightness(1.1);
