@@ -26,7 +26,7 @@ function ensureGeminiKey() {
     }
 }
 
-async function ensureGenerated(filePath, label, mode) {
+async function ensureGenerated(filePath: string, label: string, mode: string) {
     if (await Bun.file(filePath).exists()) {
         console.log(`✅ ${label} found. Skipping generation.`);
         return;
@@ -39,30 +39,30 @@ async function ensureGenerated(filePath, label, mode) {
     }
 }
 
-async function buildAndExport(auth) {
+async function buildAndExport(auth: unknown): Promise<{ presentationId: string; pdfPath: string } | null> {
     const t = performance.now();
     const slides = await createSlides(null, auth);
     console.log(`   🗂️  Slides build+upload : ${(performance.now() - t).toFixed(0)}ms`);
 
     if (typeof slides === "function") {
         await slides();
-        return;
+        return null;
     }
 
-    const presentationId = slides?.data?.presentationId;
+    const presentationId = (slides as any)?.data?.presentationId;
     if (!presentationId) {
         console.log("✅ Process completed successfully.");
-        return;
+        return null;
     }
 
-    const title = slides.data.title ?? "Presentation";
+    const title = (slides as any).data.title ?? "Presentation";
     const fileName = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
 
-    
-
     const tPdf = performance.now();
-    await exportPresentationToPDF(presentationId, fileName, auth);
+    const pdfPath = (await exportPresentationToPDF(presentationId, fileName, auth)) as string;
     console.log(`   📄 PDF export           : ${(performance.now() - tPdf).toFixed(0)}ms`);
+
+    return { presentationId, pdfPath };
 }
 
 async function main() {
@@ -83,12 +83,19 @@ async function main() {
         await manageCodeSnippets();
         console.log(`   🖼️  Code snippets        : ${(performance.now() - tSnippets).toFixed(0)}ms`);
 
-        await buildAndExport(auth);
+        const result = await buildAndExport(auth);
+
+        // Clean up temporary Google Drive folder after PDF export is complete
+        const tClean = performance.now();
+        await deleteResolvedFolder(auth);
+        console.log(`   🧹 Clean Drive          : ${(performance.now() - tClean).toFixed(0)}ms`);
 
         console.log(`\n⏱️  Total pipeline        : ${((performance.now() - tTotal) / 1000).toFixed(2)}s`);
 
-        // Clean up temporary Google Drive folder after PDF export is complete
-        await deleteResolvedFolder(auth);
+        if (result) {
+            console.log(`\n🖥️  Google Slides URL: https://docs.google.com/presentation/d/${result.presentationId}/edit`);
+            console.log(`📂 Saved PDF Location: ${result.pdfPath}`);
+        }
     } catch (error) {
         console.error("An error occurred:", error);
     }
