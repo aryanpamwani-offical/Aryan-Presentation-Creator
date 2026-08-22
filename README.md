@@ -2,6 +2,12 @@
 
 An automated, high-performance pipeline powered by **Bun**, **Gemini AI**, and the **Google Workspace APIs** to generate beautiful, interactive Google Slides presentations from a single topic prompt, complete with syntax-highlighted code block screenshots.
 
+## Preview
+
+| Code Generation Output (`code.png`) | Generated Slides Preview (`output.png`) |
+| :---: | :---: |
+| ![Code Preview](./code.png) | ![Output Preview](./output.png) |
+
 ---
 
 ## Features
