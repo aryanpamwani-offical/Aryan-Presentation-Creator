@@ -1,4 +1,4 @@
-# Superprof Presentation Creator 🚀
+# Aryan's Presentation Creator 🚀
 
 An automated, high-performance pipeline powered by **Bun**, **Gemini AI**, and the **Google Workspace APIs** to generate beautiful, interactive Google Slides presentations from a single topic prompt, complete with syntax-highlighted code block screenshots.
 
