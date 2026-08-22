@@ -10,22 +10,22 @@ import { Resvg } from '@resvg/resvg-js';
 import { parse } from 'node-html-parser';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
-import juice from 'juice';
+import type { Slide } from '../types/index.ts';
 
 const FONT_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'font.ttf');
 
 // ── Worker-local caches ───────────────────────────────────────────────────────
-let _fontBuffer = null;
-let _templateHtml = null;
-let _snippetCss = null;
-const _themeCssCache = new Map();
+let _fontBuffer: Buffer | null = null;
+let _templateHtml: string | null = null;
+let _snippetCss: string | null = null;
+const _themeCssCache = new Map<string, string>();
 
-function getCachedFont() {
+function getCachedFont(): Buffer {
     if (!_fontBuffer) _fontBuffer = fs.readFileSync(FONT_PATH);
     return _fontBuffer;
 }
 
-function getCachedTemplate() {
+function getCachedTemplate(): string {
     if (!_templateHtml) {
         const p = path.resolve(process.cwd(), 'Presentation', 'templates', 'code_snippet_template.html');
         _templateHtml = fs.readFileSync(p, 'utf8');
@@ -33,7 +33,7 @@ function getCachedTemplate() {
     return _templateHtml;
 }
 
-function getCachedCss() {
+function getCachedCss(): string {
     if (!_snippetCss) {
         const p = path.resolve(process.cwd(), 'Presentation', 'templates', 'snippet_styles.css');
         _snippetCss = fs.readFileSync(p, 'utf8');
@@ -41,7 +41,7 @@ function getCachedCss() {
     return _snippetCss;
 }
 
-async function getCachedThemeCss(themeObj, themeKey) {
+async function getCachedThemeCss(themeObj: any, themeKey: string): Promise<string> {
     if (_themeCssCache.has(themeKey)) return _themeCssCache.get(themeKey);
 
     let themeCss = '';
@@ -49,7 +49,6 @@ async function getCachedThemeCss(themeObj, themeKey) {
 
     if (cleanRel) {
         const localFileName = cleanRel.replace('.min.css', '.css');
-        // Try multiple ways to resolve highlight.js style path
         const pathsToTry = [
             path.resolve(import.meta.dir, '..', '..', 'node_modules', 'highlight.js', 'styles', localFileName),
             path.resolve(process.cwd(), 'node_modules', 'highlight.js', 'styles', localFileName),
@@ -71,7 +70,7 @@ async function getCachedThemeCss(themeObj, themeKey) {
         console.warn(`  ⚠️ Theme [${themeKey}] not found locally. Fetching from CDN: ${themeObj.theme}`);
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
 
             const res = await fetch(themeObj.theme, { signal: controller.signal });
             clearTimeout(timeoutId);
@@ -85,7 +84,7 @@ async function getCachedThemeCss(themeObj, themeKey) {
     return themeCss;
 }
 
-function detectLanguage(code, explicitLanguage = null) {
+function detectLanguage(code: string, explicitLanguage: string | null = null): string {
     if (explicitLanguage) return explicitLanguage.toLowerCase();
     const t = code.trim().toLowerCase();
     if (t.includes('<!doctype html>') || t.includes('<html') || t.includes('<div') ||
@@ -100,7 +99,43 @@ function detectLanguage(code, explicitLanguage = null) {
     return config.defaultLanguage;
 }
 
-function htmlToSatori(htmlString) {
+// ── Lightweight CSS-to-Style Map Parser ──────────────────────────────────────
+function parseCssToMap(cssString: string): Record<string, Record<string, string>> {
+    const map: Record<string, Record<string, string>> = {};
+    if (!cssString) return map;
+
+    const cleanCss = cssString.replace(/\/\*[\s\S]*?\*\//g, '');
+    const ruleRegex = /([^{]+)\s*\{\s*([^}]+)\s*\}/g;
+    let match;
+
+    while ((match = ruleRegex.exec(cleanCss)) !== null) {
+        const selectorStr = match[1].trim();
+        const rulesStr = match[2].trim();
+
+        const styleObj: Record<string, string> = {};
+        rulesStr.split(';').forEach(decl => {
+            const index = decl.indexOf(':');
+            if (index !== -1) {
+                const prop = decl.substring(0, index).trim();
+                const val = decl.substring(index + 1).trim().replace(/\s*!important/gi, '');
+                const camelProp = prop.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                styleObj[camelProp] = val;
+            }
+        });
+
+        selectorStr.split(',').forEach(selector => {
+            let cleanSel = selector.trim();
+            cleanSel = cleanSel.replace(/\[[^\]]+\]/g, '');
+            cleanSel = cleanSel.replace(/\s+/g, '');
+            if (cleanSel) {
+                map[cleanSel] = { ...map[cleanSel], ...styleObj };
+            }
+        });
+    }
+    return map;
+}
+
+function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): any {
     const root = parse(htmlString.trim(), {
         blockTextElements: { script: true, noscript: true, style: true }
     });
@@ -111,16 +146,22 @@ function htmlToSatori(htmlString) {
         }
         if (node.nodeType === 1) {
             let type = node.tagName.toLowerCase();
-            const props = {};
+            const props: Record<string, any> = {};
             const isCodeElement = type === 'pre' || type === 'code' || node.attributes.class?.includes('code-line');
             const nextInCode = inCode || isCodeElement;
             if (type === 'pre' || type === 'code') type = 'div';
+
+            // Extract class list
+            const classAttr = node.attributes.class || '';
+            const classList = classAttr.split(/\s+/).filter(Boolean);
+
+            // Apply base props from HTML
             for (const [key, val] of Object.entries(node.attributes)) {
                 if (key === 'class') {
                     props.className = val;
                 } else if (key === 'style') {
-                    const styleObj = {};
-                    val.split(';').forEach(rule => {
+                    const styleObj: Record<string, string> = {};
+                    (val as string).split(';').forEach(rule => {
                         const parts = rule.split(':');
                         if (parts.length >= 2) {
                             const k = parts[0].trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase());
@@ -132,6 +173,20 @@ function htmlToSatori(htmlString) {
                     props[key] = val;
                 }
             }
+
+            // Apply styles from CSS Map
+            props.style = props.style || {};
+            Object.keys(cssMap).forEach(selector => {
+                if (selector === type) {
+                    props.style = { ...props.style, ...cssMap[selector] };
+                } else if (selector.startsWith('.')) {
+                    const classes = selector.slice(1).split('.');
+                    if (classes.every(cls => classList.includes(cls))) {
+                        props.style = { ...props.style, ...cssMap[selector] };
+                    }
+                }
+            });
+
             if (type === 'div') {
                 props.style = props.style || {};
                 if (!props.style.display) {
@@ -139,9 +194,10 @@ function htmlToSatori(htmlString) {
                     props.style.flexDirection = 'column';
                 }
             }
+
             const children = node.childNodes
-                .map(child => parseNode(child, nextInCode))
-                .filter(child => {
+                .map((child: any) => parseNode(child, nextInCode))
+                .filter((child: any) => {
                     if (typeof child === 'string') return nextInCode ? true : child.trim().length > 0;
                     return !!child;
                 });
@@ -161,7 +217,7 @@ function htmlToSatori(htmlString) {
     return null;
 }
 
-const GRADIENTS = {
+const GRADIENTS: Record<string, string> = {
     hyper:    'linear-gradient(to bottom right, #d946ef, #dc2626, #fb923c)',
     oceanic:  'linear-gradient(to bottom right, #86efac, #3b82f6, #9333ea)',
     candy:    'linear-gradient(to bottom right, #fbcfe8, #d8b4fe, #818cf8)',
@@ -174,13 +230,18 @@ const GRADIENTS = {
     ice:      'linear-gradient(to bottom right, #ffe4e6, #ccfbf1)'
 };
 
-async function renderSnippet(snippet, options = {}) {
+async function renderSnippet(snippet: any, options: any = {}): Promise<string> {
     const themeKey = options.theme || config.defaultTheme;
     const themeObj = config.themes[themeKey] || config.themes[config.defaultTheme];
 
     let htmlContent = getCachedTemplate();
     const cssContent = getCachedCss();
     const themeCss = await getCachedThemeCss(themeObj, themeKey);
+
+    const cssMap = {
+        ...parseCssToMap(cssContent),
+        ...parseCssToMap(themeCss)
+    };
 
     const language = detectLanguage(snippet.codeblock, snippet.language);
     const title = snippet.title || '';
@@ -193,8 +254,6 @@ async function renderSnippet(snippet, options = {}) {
     } else {
         highlightedCode = hljs.highlightAuto(snippet.codeblock).value;
     }
-
-    htmlContent = htmlContent.replace('<link rel="stylesheet" href="./snippet_styles.css">', `<style>${cssContent}${themeCss}</style>`);
 
     const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
     let containerStyle = !omitBackground
@@ -218,18 +277,16 @@ async function renderSnippet(snippet, options = {}) {
         htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}[\s\S]*?\{\{\/if\}\}/g, '');
     }
 
-    const inlinedHtml = juice(htmlContent);
-    const vnode = htmlToSatori(inlinedHtml);
+    const vnode = htmlToSatori(htmlContent, cssMap);
     const fontBuffer = getCachedFont();
 
     let svg;
     try {
         svg = await satori(vnode, {
             width: 800,
-            tailwindConfig: {},
             fonts: [{ name: 'JetBrains Mono', data: fontBuffer, weight: 400, style: 'normal' }]
         });
-    } catch (err) {
+    } catch (err: any) {
         throw new Error(`Satori failed for slide ${snippet.slide_number}: ${err.message}`);
     }
 
@@ -247,23 +304,19 @@ async function renderSnippet(snippet, options = {}) {
 }
 
 // ── Bun Worker message handler ────────────────────────────────────────────────
-self.onmessage = async (event) => {
+self.onmessage = async (event: MessageEvent) => {
     const { type, snippet, options, taskId } = event.data;
 
-    // 'init' — pre-warm all caches AND trigger Satori/Resvg WASM JIT compilation
     if (type === 'init') {
         try {
             const themeKey = options?.theme || config.defaultTheme;
             const themeObj = config.themes[themeKey] || config.themes[config.defaultTheme];
 
-            // 1. Populate file caches
             getCachedFont();
             getCachedTemplate();
             getCachedCss();
             await getCachedThemeCss(themeObj, themeKey);
 
-            // 2. Trigger Satori + Resvg WASM JIT with a minimal dummy render
-            //    (1 line of code, tiny SVG — costs ~1s now, saves ~2s on first real slide)
             const dummySnippet = {
                 slide_number: 0,
                 codeblock: 'const x = 1;',
@@ -273,17 +326,17 @@ self.onmessage = async (event) => {
             await renderSnippet(dummySnippet, options);
 
             self.postMessage({ type: 'init_done', success: true });
-        } catch (err) {
+        } catch (err: any) {
             self.postMessage({ type: 'init_done', success: false, error: err.message });
         }
         return;
     }
 
-    // 'render' — actual slide render task
     try {
         const outputPath = await renderSnippet(snippet, options);
         self.postMessage({ taskId, success: true, outputPath });
-    } catch (err) {
+    } catch (err: any) {
         self.postMessage({ taskId, success: false, error: err.message });
     }
 };
+

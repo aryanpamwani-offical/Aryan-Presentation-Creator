@@ -4,7 +4,6 @@ import https from 'https';
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 import { parse } from 'node-html-parser';
-import juice from 'juice';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
 import saveJSONFile from '../ai-core/saveJSONFile.js';
@@ -104,8 +103,8 @@ export const downloadTailwindIfNeeded = async () => {
         }
     }
 
-    const download = (url) => {
-        return new Promise((resolve, reject) => {
+    const download = (url: string) => {
+        return new Promise<void>((resolve, reject) => {
             https.get(url, (res) => {
                 if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                     const nextUrl = res.headers.location.startsWith('http') 
@@ -146,11 +145,11 @@ export const downloadFontIfNeeded = async () => {
             await Bun.write(FONT_PATH, res);
             console.log('✅ Saved font.ttf locally using Bun.');
             return;
-        } catch (e) {
+        } catch (e: any) {
             console.warn('⚠️ Bun font fetch failed, falling back to Node.js downloader...', e.message);
         }
     }
-    return new Promise((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         https.get('https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf', (res) => {
             if (res.statusCode !== 200) {
                 reject(new Error(`Failed to download Font: ${res.statusCode}`));
@@ -212,7 +211,42 @@ function detectLanguage(code, explicitLanguage = null) {
 /**
  * Parses HTML string into Satori-compatible VNode structure
  */
-function htmlToSatori(htmlString) {
+function parseCssToMap(cssString) {
+    const map = {};
+    if (!cssString) return map;
+
+    const cleanCss = cssString.replace(/\/\*[\s\S]*?\*\//g, '');
+    const ruleRegex = /([^{]+)\s*\{\s*([^}]+)\s*\}/g;
+    let match;
+
+    while ((match = ruleRegex.exec(cleanCss)) !== null) {
+        const selectorStr = match[1].trim();
+        const rulesStr = match[2].trim();
+
+        const styleObj = {};
+        rulesStr.split(';').forEach(decl => {
+            const index = decl.indexOf(':');
+            if (index !== -1) {
+                const prop = decl.substring(0, index).trim();
+                const val = decl.substring(index + 1).trim().replace(/\s*!important/gi, '');
+                const camelProp = prop.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                styleObj[camelProp] = val;
+            }
+        });
+
+        selectorStr.split(',').forEach(selector => {
+            let cleanSel = selector.trim();
+            cleanSel = cleanSel.replace(/\[[^\]]+\]/g, '');
+            cleanSel = cleanSel.replace(/\s+/g, '');
+            if (cleanSel) {
+                map[cleanSel] = { ...map[cleanSel], ...styleObj };
+            }
+        });
+    }
+    return map;
+}
+
+function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): any {
     const root = parse(htmlString.trim(), {
         blockTextElements: {
             script: true,
@@ -221,29 +255,31 @@ function htmlToSatori(htmlString) {
         }
     });
     
-    function parseNode(node, inCode = false) {
+    function parseNode(node: any, inCode = false): any {
         if (node.nodeType === 3) {
             return inCode ? node.textContent : node.textContent.trim().replace(/\s+/g, ' ');
         }
         
         if (node.nodeType === 1) {
             let type = node.tagName.toLowerCase();
-            const props = {};
+            const props: Record<string, any> = {};
             
             const isCodeElement = type === 'pre' || type === 'code' || node.attributes.class?.includes('code-line');
             const nextInCode = inCode || isCodeElement;
             
-            // Map pre and code tags to div for Satori layout compliance
             if (type === 'pre' || type === 'code') {
                 type = 'div';
             }
+
+            const classAttr = node.attributes.class || '';
+            const classList = classAttr.split(/\s+/).filter(Boolean);
             
             for (const [key, val] of Object.entries(node.attributes)) {
                 if (key === 'class') {
                     props.className = val;
                 } else if (key === 'style') {
-                    const styleObj = {};
-                    val.split(';').forEach(styleRule => {
+                    const styleObj: Record<string, string> = {};
+                    (val as string).split(';').forEach(styleRule => {
                         const parts = styleRule.split(':');
                         if (parts.length >= 2) {
                             const styleKey = parts[0].trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -255,8 +291,20 @@ function htmlToSatori(htmlString) {
                     props[key] = val;
                 }
             }
+
+            // Apply styles from CSS Map
+            props.style = props.style || {};
+            Object.keys(cssMap).forEach(selector => {
+                if (selector === type) {
+                    props.style = { ...props.style, ...cssMap[selector] };
+                } else if (selector.startsWith('.')) {
+                    const classes = selector.slice(1).split('.');
+                    if (classes.every(cls => classList.includes(cls))) {
+                        props.style = { ...props.style, ...cssMap[selector] };
+                    }
+                }
+            });
             
-            // Enforce display: flex on all div wrappers with children to satisfy Satori
             if (type === 'div') {
                 props.style = props.style || {};
                 if (!props.style.display) {
@@ -266,8 +314,8 @@ function htmlToSatori(htmlString) {
             }
             
             const children = node.childNodes
-                .map(child => parseNode(child, nextInCode))
-                .filter(child => {
+                .map((child: any) => parseNode(child, nextInCode))
+                .filter((child: any) => {
                     if (typeof child === 'string') {
                         if (nextInCode) return true;
                         return child.trim().length > 0;
@@ -300,18 +348,22 @@ function htmlToSatori(htmlString) {
 /**
  * Generates inline-styled HTML markup using highlight.js and juice
  */
-async function generateInlinedHTML(snippet, options = {}) {
+async function generateInlinedHTML(snippet: any, options: any = {}) {
     const themeKey = options.theme || config.defaultTheme;
     const fontKey = options.font || config.defaultFont;
 
     const themeObj = config.themes[themeKey] || config.themes[config.defaultTheme];
     const fontObj = config.fonts[fontKey] || config.fonts[config.defaultFont];
 
-    // Load templates and styles from cache (read once, reused per slide)
     let htmlContent = getCachedTemplate();
     const cssContent = getCachedCss();
+    const themeCss = await getCachedThemeCss(themeObj, themeKey);
 
-    // Highlight code using Highlight.js
+    const cssMap = {
+        ...parseCssToMap(cssContent),
+        ...parseCssToMap(themeCss)
+    };
+
     let highlightedCode;
     const language = detectLanguage(snippet.codeblock, snippet.language);
     const title = snippet.title || '';
@@ -329,18 +381,6 @@ async function generateInlinedHTML(snippet, options = {}) {
         highlightedCode = result.value;
     }
 
-    // Load theme CSS from cache (avoids re-reading disk or re-fetching per slide)
-    const themeCss = await getCachedThemeCss(themeObj, themeKey);
-
-    // Inject CSS styles into the template
-    htmlContent = htmlContent.replace('<link rel="stylesheet" href="./snippet_styles.css">', `
-        <style>
-            ${cssContent}
-            ${themeCss}
-        </style>
-    `);
-
-    // Prepare container class with gradient background (inlined style)
     const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
     let containerStyle = '';
     
@@ -351,16 +391,11 @@ async function generateInlinedHTML(snippet, options = {}) {
         containerStyle = `background: transparent; padding: 4px; display: flex;`;
     }
 
-    // Split highlighted code by newline and wrap each line in a flex-row div
     const codeLines = highlightedCode.split('\n').map(line => {
         return `<div class="code-line" style="display: flex; flex-direction: row; align-items: center; min-height: 20px; white-space: pre; color: #e5e7eb;">${line || ' '}</div>`;
     }).join('');
 
-    // Inject styles and replace placeholders
     htmlContent = htmlContent.replace('class="snippet-container {{CONTAINER_CLASS}}', `class="snippet-container" style="${containerStyle}"`);
-    
-
-
     htmlContent = htmlContent.replace(/\{\{THEME\}\}/g, themeKey);
     htmlContent = htmlContent.replace(/\{\{LANGUAGE\}\}/g, language);
     htmlContent = htmlContent.replace(/\{\{CODE\}\}/g, codeLines);
@@ -373,8 +408,7 @@ async function generateInlinedHTML(snippet, options = {}) {
         htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}[\s\S]*?\{\{\/if\}\}/g, '');
     }
 
-    // Inline all CSS properties using Juice
-    return juice(htmlContent);
+    return { htmlContent, cssMap };
 }
 
 /**
@@ -383,11 +417,9 @@ async function generateInlinedHTML(snippet, options = {}) {
 export async function generateCodeSnippet(snippet, options = {}, browserInstance = null) {
     await downloadFontIfNeeded();
 
-    // Generate inlined HTML markup
-    const inlinedHtml = await generateInlinedHTML(snippet, options);
+    const { htmlContent, cssMap } = await generateInlinedHTML(snippet, options);
 
-    // Convert inlined HTML to VNode
-    const vnode = htmlToSatori(inlinedHtml);
+    const vnode = htmlToSatori(htmlContent, cssMap);
 
     // Read local font file (cached after first load)
     const fontBuffer = getCachedFont();
@@ -478,7 +510,7 @@ export async function generateAllSnippets(options = {}) {
 
         // ── Phase 1: Render and Upload code slides concurrently (Eager uploads) ─
         const t1Start = performance.now();
-        const uploadPromises = [];
+        const uploadPromises: Promise<void>[] = [];
         const t2Start = performance.now();
 
         const rawResults = await renderWithWorkerPool(codeSlides, options, (slide, outputPath) => {
@@ -487,12 +519,12 @@ export async function generateAllSnippets(options = {}) {
                     try {
                         const imageUrl = await uploadImageToDrive(authClient, outputPath, topicName);
                         if (imageUrl) {
-                            slide.imageUrl = imageUrl;
+                            (slide as any).imageUrl = imageUrl;
                             console.log(`✅ slide-${slide.slide_number}.png → ${imageUrl}`);
                         }
                         if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
                         updatedCount++;
-                    } catch (err) {
+                    } catch (err: any) {
                         console.error(`❌ Upload failed for slide ${slide.slide_number}:`, err.message);
                     }
                 })();
@@ -500,11 +532,11 @@ export async function generateAllSnippets(options = {}) {
             }
         });
 
-        const t1Ms = (performance.now() - t1Start).toFixed(0);
+        const t1Ms = Math.round(performance.now() - t1Start);
 
         // Normalise results shape to { slide, localImagePath, error }
         const renderResults = rawResults.map(r => {
-            if (r.outputPath) r.slide.image = r.outputPath;
+            if (r.outputPath) (r.slide as any).image = r.outputPath;
             return { slide: r.slide, localImagePath: r.outputPath, error: r.error };
         });
 
@@ -513,7 +545,7 @@ export async function generateAllSnippets(options = {}) {
         if (authClient && uploadPromises.length > 0) {
             console.log(`\n📤 Waiting for remaining Drive uploads to complete...`);
             await Promise.all(uploadPromises);
-            t2Ms = (performance.now() - t2Start).toFixed(0);
+            t2Ms = Math.round(performance.now() - t2Start);
         } else {
             updatedCount = renderResults.filter(r => r.localImagePath).length;
         }
@@ -524,7 +556,7 @@ export async function generateAllSnippets(options = {}) {
         }
 
         // ── Pipeline timing summary ───────────────────────────────────────────
-        const totalMs = (performance.now() - t1Start).toFixed(0);
+        const totalMs = Math.round(performance.now() - t1Start);
         console.log(`\n⏱️  Pipeline timing:`);
         console.log(`   🖼️  Render phase  : ${t1Ms}ms`);
         if (authClient) console.log(`   ☁️  Upload phase  : ${t2Ms}ms (overlapping with render)`);

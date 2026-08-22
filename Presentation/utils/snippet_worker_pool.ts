@@ -5,16 +5,21 @@
  */
 import os from 'os';
 import path from 'path';
+import type { Slide } from '../types/index.ts';
 
-const WORKER_PATH = path.resolve(process.cwd(), 'Presentation', 'utils', 'snippet_render_worker.js');
+const WORKER_PATH = path.resolve(process.cwd(), 'Presentation', 'utils', 'snippet_render_worker.ts');
 
 /**
  * Creates a pool of Bun Workers and distributes render tasks across them.
- * @param {Array} slides     - Array of slide objects to render
- * @param {Object} options   - Render options (theme, omitBackground, etc.)
- * @returns {Promise<Array>} - Array of { slide, outputPath, error } results
+ * @param slides     - Array of slide objects to render
+ * @param options   - Render options (theme, omitBackground, etc.)
+ * @returns - Array of { slide, outputPath, error } results
  */
-export async function renderWithWorkerPool(slides, options = {}, onSlideRendered = null) {
+export async function renderWithWorkerPool(
+    slides: Slide[],
+    options: Record<string, any> = {},
+    onSlideRendered: ((slide: Slide, outputPath: string) => void) | null = null
+): Promise<Array<{ slide: Slide; outputPath: string | null; error: string | null }>> {
     const cpuCount = os.cpus().length;
     const poolSize = Math.min(cpuCount, slides.length);
 
@@ -28,7 +33,7 @@ export async function renderWithWorkerPool(slides, options = {}, onSlideRendered
     // ── Pre-warm: load all module caches on every worker simultaneously ────────
     const warmStart = performance.now();
     await Promise.all(workers.map((worker, i) =>
-        new Promise((resolve) => {
+        new Promise<void>((resolve) => {
             worker.onmessage = (event) => {
                 if (event.data.type === 'init_done') resolve();
             };
@@ -38,15 +43,15 @@ export async function renderWithWorkerPool(slides, options = {}, onSlideRendered
     const warmMs = (performance.now() - warmStart).toFixed(0);
     console.log(`  🔥 All ${poolSize} workers warmed up in ${warmMs}ms`);
 
-    const results = new Array(slides.length).fill(null);
+    const results: Array<{ slide: Slide; outputPath: string | null; error: string | null }> = new Array(slides.length);
     const slideTimes = new Array(slides.length).fill(0); // ms per slide
     let taskIndex = 0;
     let doneCount  = 0;
 
     const poolStart = performance.now();
 
-    return new Promise((resolve) => {
-        function assignNext(worker, workerIndex) {
+    return new Promise<Array<{ slide: Slide; outputPath: string | null; error: string | null }>>((resolve) => {
+        function assignNext(worker: Worker, workerIndex: number) {
             if (taskIndex >= slides.length) {
                 worker.terminate();
                 return;

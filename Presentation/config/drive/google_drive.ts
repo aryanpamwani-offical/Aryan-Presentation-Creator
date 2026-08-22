@@ -48,7 +48,7 @@ async function getOrCreateFolder(drive, name, parentId = null) {
     folderId = res.data.files[0].id;
   } else {
     // Create new folder
-    const fileMetadata = {
+    const fileMetadata: any = {
       name: name,
       mimeType: 'application/vnd.google-apps.folder',
     };
