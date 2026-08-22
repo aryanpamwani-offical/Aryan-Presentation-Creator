@@ -104,11 +104,15 @@ bun index.ts [options] ["Your Topic Name"]
 *   **`-gi` / `--generate-interactive`** — Prompts you to interactively configure the code snippet styling options (Theme, Font, and Transparent Background).
 *   **`--force`** — Forces a complete rebuild of the topic's presentation and outline (ignores and overwrites the outline and presentation caches).
 
-### 🛠️ Standalone Screenshot Generator:
-You can also generate screenshots locally with custom styling interactively without running the Google Slides pipeline:
-```bash
-bun generate_interactive.ts
-```
+### 🚀 Package Script Shortcuts:
+You can also run commands using standard package scripts:
+*   `bun run start` — Runs the main presentation pipeline.
+*   `bun run interactive` — Runs pipeline with interactive topic input (`bun index.ts -i`).
+*   `bun run snippet-customizer` — Runs pipeline with interactive snippet customization (`bun index.ts -gi`).
+*   `bun run interactive-all` — Runs pipeline prompting for both topic and snippet styles (`bun index.ts -i -gi`).
+*   `bun run generate-snippets` — Compiles code snippets locally with custom styles (`bun generate_interactive.ts`).
+*   `bun run download-logos` — Downloads programming logos (`bun run scripts/download_logos.js`).
+*   `bun run type-check` — Performs strict type safety analysis (`bun x tsc --noEmit`).
 
 ### 🔑 Authentication:
 If it's your first time running, your web browser will automatically open to authenticate with Google. Grant permissions and the script will automatically capture the token and continue.
