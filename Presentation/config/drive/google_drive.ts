@@ -8,26 +8,30 @@ let resolvedFolderPromise = null;
 // ── Local disk cache for logo Drive URLs ─────────────────────────────────────
 const LOGO_CACHE_PATH = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'logo_cache.json');
 
-function readLogoCache() {
+interface LogoCache {
+  _folders?: Record<string, string>;
+  [key: string]: string | Record<string, string> | undefined;
+}
+
+function readLogoCache(): LogoCache {
   try {
     if (existsSync(LOGO_CACHE_PATH)) return JSON.parse(readFileSync(LOGO_CACHE_PATH, 'utf8'));
   } catch (_) {}
   return {};
 }
 
-function writeLogoCache(cache) {
+function writeLogoCache(cache: LogoCache): void {
   try {
     writeFileSync(LOGO_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf8');
   } catch (_) {}
 }
 
-// Helper to sanitize folder name
-function sanitizeFolderName(name) {
+function sanitizeFolderName(name: string): string {
   return name.replace(/[\/\\?%*:|"<>\s]+/g, '_').trim();
 }
 
-async function getOrCreateFolder(drive, name, parentId = null) {
-  const cache = readLogoCache();
+async function getOrCreateFolder(drive: drive_v3.Drive, name: string, parentId: string | null = null): Promise<string> {
+  const cache: LogoCache = readLogoCache();
   const cacheKey = `${name}:${parentId}`;
   if (cache._folders && cache._folders[cacheKey]) {
     return cache._folders[cacheKey];
@@ -56,7 +60,7 @@ async function getOrCreateFolder(drive, name, parentId = null) {
       fileMetadata.parents = [parentId];
     }
     const folder = await drive.files.create({
-      resource: fileMetadata,
+      requestBody: fileMetadata,
       fields: 'id',
     });
     folderId = folder.data.id;
@@ -69,9 +73,9 @@ async function getOrCreateFolder(drive, name, parentId = null) {
   return folderId;
 }
 
-async function getUniqueTopicFolder(drive, baseTopic) {
-  const superprofId = await getOrCreateFolder(drive, 'Superprof');
-  const imagesId = await getOrCreateFolder(drive, 'images', superprofId);
+async function getUniqueTopicFolder(drive: any, baseTopic: string) {
+  const parentFolderId = await getOrCreateFolder(drive, 'Aryan');
+  const imagesId = await getOrCreateFolder(drive, 'images', parentFolderId);
 
   const cleanTopic = sanitizeFolderName(baseTopic);
   let finalFolderName = cleanTopic;
@@ -183,9 +187,9 @@ export const getLogoFromDrive = async (auth, filename, localFallbackPath = null)
   try {
     const drive = google.drive({ version: 'v3', auth });
     
-    // Resolve Superprof/images/logo folder structure
-    const superprofId = await getOrCreateFolder(drive, 'Superprof');
-    const imagesId = await getOrCreateFolder(drive, 'images', superprofId);
+    // Resolve Aryan/images/logo folder structure
+    const parentFolderId = await getOrCreateFolder(drive, 'Aryan');
+    const imagesId = await getOrCreateFolder(drive, 'images', parentFolderId);
     const logoFolderId = await getOrCreateFolder(drive, 'logo', imagesId);
 
     // Search for filename inside logoFolderId
