@@ -8,6 +8,7 @@ import google_ai_core from "./Presentation/ai-core/google_ai_code.js";
 import exportPresentationToPDF from "./Presentation/utils/export_pdf.js";
 import AuthWithGoogle, { TOKEN_PATH } from "./Presentation/config/auth/google-oauth.js";
 import { deleteResolvedFolder } from "./Presentation/config/drive/google_drive.js";
+import { askQuestion, askTextInput } from "./Presentation/utils/interaction.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,13 +125,24 @@ async function main() {
     try {
         const tTotal = performance.now();
 
-        // 1. Resolve dynamic topic and force flags from CLI arguments
+        // 1. Resolve dynamic topic and flags from CLI arguments
         const args = process.argv.slice(2);
         const isForce = args.includes('--force');
-        const topicArgs = args.filter(arg => arg !== '--force');
+        const isInteractive = args.includes('--interactive') || args.includes('-i');
+        
+        const topicArgs = args.filter(arg => arg !== '--force' && arg !== '--interactive' && arg !== '-i');
         const cliTopic = topicArgs.join(' ').trim();
         
-        const activeTopic = cliTopic || DEFAULT_TOPIC;
+        let activeTopic = cliTopic;
+        if (isInteractive) {
+            activeTopic = await askTextInput("Please enter/paste your topic name");
+            if (!activeTopic) {
+                console.error("❌ No topic provided. Aborting.");
+                process.exit(1);
+            }
+        } else if (!activeTopic) {
+            activeTopic = DEFAULT_TOPIC;
+        }
         
         console.log(`\n📚 Active Topic: "${activeTopic}"`);
 
