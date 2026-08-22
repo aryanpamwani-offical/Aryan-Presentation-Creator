@@ -34,33 +34,33 @@ Aryan's Presentation Creator is an automated, high-performance CLI pipeline powe
 
 ```mermaid
 flowchart TD
-    subgraph Input & AI
+    subgraph input_ai ["Input & AI"]
         A[Topic Prompt] --> B[Gemini AI Generator]
         B --> C[outline.json & presentation.json]
     end
 
-    subgraph High-Performance Rendering
+    subgraph rendering ["High-Performance Rendering"]
         C --> D[Bun Worker Pool]
         D --> E[HTML/CSS to SVG Satori]
         E --> F[SVG to PNG Resvg]
     end
 
-    subgraph Google Cloud Integration
+    subgraph integration ["Google Cloud Integration"]
         F --> G[Upload Snippets to Drive]
         G --> H[Create Slides Deck]
         H --> I[Google Slides API Assembly]
     end
 
-    subgraph Output & Finalization
+    subgraph output ["Output & Finalization"]
         I --> J[Export PDF]
         J --> K[Purge Temp Drive Assets]
         K --> L[Completed PDF & Link]
     end
 
-    style Input & AI fill:#f8fafc,stroke:#e2e8f0,stroke-width:2px
-    style High-Performance Rendering fill:#fff7ed,stroke:#ffedd5,stroke-width:2px
-    style Google Cloud Integration fill:#f0fdf4,stroke:#dcfce7,stroke-width:2px
-    style Output & Finalization fill:#f0f9ff,stroke:#e0f2fe,stroke-width:2px
+    style input_ai fill:#f8fafc,stroke:#e2e8f0,stroke-width:2px
+    style rendering fill:#fff7ed,stroke:#ffedd5,stroke-width:2px
+    style integration fill:#f0fdf4,stroke:#dcfce7,stroke-width:2px
+    style output fill:#f0f9ff,stroke:#e0f2fe,stroke-width:2px
 ```
 
 ---
