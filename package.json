@@ -5,11 +5,15 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prod": "bun index.ts -i",
-    "dev": "bun run scripts/generate_snippets_local.ts"
+    "start": "bun index.ts",
+    "interactive": "bun index.ts -i",
+    "snippet-customizer": "bun index.ts -gi",
+    "interactive-all": "bun index.ts -i -gi",
+    "generate-snippets": "bun generate_interactive.ts",
+    "download-logos": "bun run scripts/download_logos.js",
+    "type-check": "bun x tsc --noEmit"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.52.0",

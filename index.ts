@@ -130,7 +130,7 @@ async function main() {
         const isForce = args.includes('--force');
         const isInteractive = args.includes('--interactive') || args.includes('-i');
         
-        const topicArgs = args.filter(arg => arg !== '--force' && arg !== '--interactive' && arg !== '-i');
+        const topicArgs = args.filter(arg => !arg.startsWith('-'));
         const cliTopic = topicArgs.join(' ').trim();
         
         let activeTopic = cliTopic;
