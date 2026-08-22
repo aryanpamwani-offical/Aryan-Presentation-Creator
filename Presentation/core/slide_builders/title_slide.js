@@ -3,11 +3,10 @@ import {
     selectTextStyle
 } from "../../utils/text_utils.js";
 
-import estimateTextHeight from "../../config/dimension_calculator/textbox-height-calculator.js";
-import compress_image_upload from "../../utils/compress_image_upload.js";
+import { estimateTextHeight } from "../../config/dimension_calculator/index.js";
+import { compressImageAndUpload as compress_image_upload } from "../../utils/image_helper.js";
 import { updateSlideImage } from "./slideData.js";
-
-import THEME_COLORS from "../../constants/theme/theme_colors.js";
+import { THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex) => {
     const requests = [];

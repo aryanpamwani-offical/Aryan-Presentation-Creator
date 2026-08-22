@@ -1,5 +1,4 @@
-import { createSlideIds } from "../constants/theme/generateId.js";
-import THEME_COLORS from "../constants/theme/theme_colors.js";
+import { createSlideIds, THEME_COLORS } from "../constants/theme/index.js";
 
 import buildTitleSlide from "./slide_builders/title_slide.js";
 import buildThankYouSlide from "./slide_builders/thank_you_slide.js";

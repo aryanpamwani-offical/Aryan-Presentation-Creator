@@ -1,0 +1,134 @@
+[
+  {
+    "id": 0,
+    "module_number": 1,
+    "module_title": "Flexbox Basics and Concepts",
+    "module_description": "Introduces the fundamental concepts of CSS Flexbox, including its core components and how to enable it for layout management.",
+    "topics": [
+      {
+        "id": 0,
+        "topic_title": "Flexbox Introduction",
+        "topic_description": "Understand what Flexbox is and its purpose in modern web layout design.",
+        "subtopics": []
+      },
+      {
+        "id": 1,
+        "topic_title": "Display: Flex",
+        "topic_description": "Learn how to activate Flexbox for a container element to create a flex context.",
+        "subtopics": []
+      },
+      {
+        "id": 2,
+        "topic_title": "Main and Cross Axis",
+        "topic_description": "Explore the two primary axes that govern the direction and alignment of Flexbox items.",
+        "subtopics": []
+      },
+      {
+        "id": 3,
+        "topic_title": "Container and Items",
+        "topic_description": "Differentiate between the Flex container and its direct children, known as Flex items.",
+        "subtopics": []
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "module_number": 2,
+    "module_title": "Flex Container Properties",
+    "module_description": "Dive into the properties applied to the Flex container, controlling the overall layout and behavior of its items.",
+    "topics": [
+      {
+        "id": 0,
+        "topic_title": "Flexbox Parent Props",
+        "topic_description": "Overview of properties applied to the flex container to manage its children's layout.",
+        "subtopics": []
+      },
+      {
+        "id": 1,
+        "topic_title": "Flex-direction",
+        "topic_description": "Control the direction of flex items along the main axis within the container.",
+        "subtopics": []
+      },
+      {
+        "id": 2,
+        "topic_title": "Flex-wrap",
+        "topic_description": "Determine if flex items should wrap to multiple lines when space is limited.",
+        "subtopics": []
+      },
+      {
+        "id": 3,
+        "topic_title": "Flex-flow",
+        "topic_description": "Understand this shorthand property for combining flex-direction and flex-wrap values.",
+        "subtopics": []
+      },
+      {
+        "id": 4,
+        "topic_title": "Justify-content",
+        "topic_description": "Align flex items along the main axis of the flex container.",
+        "subtopics": []
+      },
+      {
+        "id": 5,
+        "topic_title": "Align-items",
+        "topic_description": "Align flex items along the cross axis of the flex container.",
+        "subtopics": []
+      },
+      {
+        "id": 6,
+        "topic_title": "Align-content",
+        "topic_description": "Align flex lines along the cross axis when there is extra space and wrapping occurs.",
+        "subtopics": []
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "module_number": 3,
+    "module_title": "Flex Item Properties",
+    "module_description": "Focus on properties applied to individual Flex items, influencing their behavior within the container layout.",
+    "topics": [
+      {
+        "id": 0,
+        "topic_title": "Flexbox Child Props",
+        "topic_description": "Properties that control individual flex items' behavior within the container.",
+        "subtopics": []
+      },
+      {
+        "id": 1,
+        "topic_title": "Order",
+        "topic_description": "Change the visual order of flex items, regardless of their source order.",
+        "subtopics": []
+      },
+      {
+        "id": 2,
+        "topic_title": "Flex-grow",
+        "topic_description": "Define the ability of a flex item to grow if there is available space.",
+        "subtopics": []
+      },
+      {
+        "id": 3,
+        "topic_title": "Flex-shrink",
+        "topic_description": "Define the ability of a flex item to shrink if there is not enough space.",
+        "subtopics": []
+      },
+      {
+        "id": 4,
+        "topic_title": "Flex-basis",
+        "topic_description": "Set the initial main size of a flex item before any available space is distributed.",
+        "subtopics": []
+      },
+      {
+        "id": 5,
+        "topic_title": "Flex Shorthand",
+        "topic_description": "Understand this combined shorthand for flex-grow, flex-shrink, and flex-basis.",
+        "subtopics": []
+      },
+      {
+        "id": 6,
+        "topic_title": "Align-self",
+        "topic_description": "Override the align-items value for a specific flex item, aligning it individually.",
+        "subtopics": []
+      }
+    ]
+  }
+]

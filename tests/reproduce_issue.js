@@ -1,5 +1,5 @@
-import buildScreenshotTutorialSlide from "./Presentation/core/slide_builders/screenshot_tutorial_slide.js";
-import { createSlideIds } from "./Presentation/constants/theme/generateId.js";
+import buildScreenshotTutorialSlide from "../Presentation/core/slide_builders/screenshot_tutorial_slide.js";
+import { createSlideIds } from "../Presentation/constants/theme/index.js";
 
 const mockSlideData = {
     type: "code",

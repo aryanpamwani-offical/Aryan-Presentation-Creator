@@ -5,8 +5,7 @@ import {
     translateX_and_translateY,
     updateParagraphStyle
 } from "../../utils/text_utils.js";
-import { slideTypes } from "../../constants/theme/slide_types.js";
-import THEME_COLORS from "../../constants/theme/theme_colors.js";
+import { slideTypes, THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
     const requests = [];

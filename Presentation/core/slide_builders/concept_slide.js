@@ -5,8 +5,8 @@ import {
     translateX_and_translateY,
     updateParagraphStyle
 } from "../../utils/text_utils.js";
-import { slideTypes } from "../../constants/theme/slide_types.js";
-import createImage from "../../utils/image_utils.js";
+import { slideTypes } from "../../constants/theme/index.js";
+import { createImage } from "../../utils/image_helper.js";
 
 const buildConceptSlide = (slideId, slideElements, slideData) => {
     const requests = [];

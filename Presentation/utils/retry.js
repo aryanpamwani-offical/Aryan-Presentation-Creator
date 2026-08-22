@@ -11,7 +11,7 @@ export async function callWithRetry(fn, retries = 3, delayMs = 60000) {
         try {
             return await fn();
         } catch (error) {
-            // Check for OpenAI 429 or generic 429 status
+            // Check for Gemini 429 or generic 429 status
             const isRateLimit = error.status === 429 || (error.response && error.response.status === 429);
 
             // If it's the last attempt or not a rate limit error, throw it

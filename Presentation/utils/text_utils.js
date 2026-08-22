@@ -1,10 +1,5 @@
-import THEME_FONTS from "../constants/theme/theme_fonts.js";
-import THEME_COLORS from "../constants/theme/theme_colors.js";
-import THEME_FONTS_SIZE from "../constants/theme/theme_font_size.js";
-import THEME_FONTS_WEIGHT from "../constants/theme/theme_font_weight.js";
-import estimateTextHeight from "../config/dimension_calculator/textbox-height-calculator.js";
-import widthcalculator from "../config/dimension_calculator/width_calculator.js";
-import { title_padding } from "../constants/theme/padding.js";
+import { THEME_COLORS, FONTS, FONT_SIZES, FONT_WEIGHTS, PADDING } from "../constants/theme/index.js";
+import { estimateTextHeight, widthCalculator } from "../config/dimension_calculator/index.js";
 
 const SLIDE_WIDTH = 720;
 const SLIDE_HEIGHT = 405;
@@ -12,64 +7,58 @@ const SLIDE_HEIGHT = 405;
 const textFields = {
   moduleLabel: {
     key: 'moduleLabel',
-    size: THEME_FONTS_SIZE.moduleLabel,
+    size: FONT_SIZES.moduleLabel,
     bold: true,
-    font: THEME_FONTS.heading,
+    font: FONTS.heading,
     color: THEME_COLORS.accent
   },
   title: {
     key: 'title',
-    size: THEME_FONTS_SIZE.title,
+    size: FONT_SIZES.title,
     bold: true,
-    font: THEME_FONTS.heading,
+    font: FONTS.heading,
     color: THEME_COLORS.text
   },
   subTitle: {
     key: 'subtitle',
-    size: THEME_FONTS_SIZE.subTitle,
+    size: FONT_SIZES.subTitle,
     bold: false,
-    font: THEME_FONTS.body,
+    font: FONTS.body,
     color: THEME_COLORS.accent
   },
   subHeading: {
     key: 'subheading',
-    size: THEME_FONTS_SIZE.subHeadng,
+    size: FONT_SIZES.subHeadng,
     bold: false,
-    font: THEME_FONTS.body,
+    font: FONTS.body,
     color: THEME_COLORS.text
   },
   body: {
     key: 'body',
-    size: THEME_FONTS_SIZE.body,
+    size: FONT_SIZES.body,
     bold: false,
-    font: THEME_FONTS.body,
+    font: FONTS.body,
     color: THEME_COLORS.text
   },
   description: {
     key: 'description',
-    size: THEME_FONTS_SIZE.description,
+    size: FONT_SIZES.description,
     bold: false,
-    font: THEME_FONTS.body,
+    font: FONTS.body,
     color: THEME_COLORS.text
   },
-
-  // ── Title Slide specific styles ──────────────────────────────────────────
- 
   titleSlideSubtitle: {
     key: 'titleSlideSubtitle',
-    size: THEME_FONTS_SIZE.body,
+    size: FONT_SIZES.body,
     bold: false,
-    font: THEME_FONTS.body,
-   // weight: THEME_FONTS_SIZE.title,
+    font: FONTS.body,
     color: THEME_COLORS.secondaryText
   }
 };
 
-// ─── helpers ────────────────────────────────────────────────────────────────
-
 const elementSelect = (selectedType, text) => {
   const request = [];
-  const widthVal = widthcalculator(title_padding);
+  const widthVal = widthCalculator(PADDING.title_padding);
 
   if (textFields[selectedType]) {
     const field = textFields[selectedType];
@@ -84,22 +73,17 @@ const elementSelect = (selectedType, text) => {
   return request;
 };
 
-/**
- * Builds an updateTextStyle request from a textFields key.
- * Supports the optional `weight` property used by titleSlide variants.
- */
 const selectTextStyle = (selectedStyle, elementId) => {
   try {
     const field = textFields[selectedStyle];
     if (!field) throw new Error(`Unknown style: ${selectedStyle}`);
 
-    // Prefer explicit weight, fall back to bold flag → theme weights
     const fontWeight =
       field.weight !== undefined
         ? field.weight
         : field.bold
-        ? THEME_FONTS_WEIGHT.bold
-        : THEME_FONTS_WEIGHT.normal;
+        ? FONT_WEIGHTS.bold
+        : FONT_WEIGHTS.normal;
 
     return {
       updateTextStyle: {

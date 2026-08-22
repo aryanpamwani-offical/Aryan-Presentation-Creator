@@ -1,6 +1,5 @@
-import { selectOption, askQuestion } from "../utils/interaction.js";
-import config from "../config/snippet_config.js";
-
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Handles the interactive generation of code snippets.
@@ -15,12 +14,44 @@ export const manageCodeSnippets = async () => {
     let theme = 'candy';
     let font = 'firaCode';
     let omitBackground = true;
-    let shouldGenerate = true; // Default to true for non-interactive? User said "runs this method optimize it even after not selecting to run ai core but still runs". 
-    // Wait, the user said "It takes time run this method optimize it even after not selecting to run ai core but still runs".
-    // And "Also add the default conditon where there's no interractive mode in the terminal... These are my default condition util I give the flag in the command"
-    // This implies they WANT it to run by default with these settings, without asking.
+    let shouldGenerate = true;
+
+    // Pre-check optimization: Check if presentation.json exists and all code slides already have valid URLs
+    const presentationJsonPath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
+    if (fs.existsSync(presentationJsonPath)) {
+        try {
+            const rawData = fs.readFileSync(presentationJsonPath, 'utf8');
+            const slides = JSON.parse(rawData);
+            if (Array.isArray(slides)) {
+                const codeSlides = slides.filter(slide => slide.type === 'code' && slide.codeblock);
+                
+                // Fast check to see if any cached image URLs are dead (404)
+                const checkPromises = codeSlides
+                    .filter(slide => slide.imageUrl && slide.imageUrl.startsWith('http'))
+                    .map(async (slide) => {
+                        try {
+                            const res = await fetch(slide.imageUrl, { method: 'HEAD', signal: AbortSignal.timeout(2000) });
+                            if (res.status === 404) {
+                                slide.imageUrl = null; // Mark for regeneration
+                            }
+                        } catch (_) {}
+                    });
+                await Promise.all(checkPromises);
+
+                const needsUpdate = codeSlides.some(slide => !slide.imageUrl || (!slide.imageUrl.startsWith('http') && !slide.imageUrl.includes('drive.google.com')));
+                if (!needsUpdate && !isInteractive) {
+                    console.log('✅ All code snippets already have valid URLs. Skipping snippet generation step.');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Could not pre-parse presentation.json, proceeding with default generator.');
+        }
+    }
 
     if (isInteractive) {
+        const { selectOption, askQuestion } = await import("../utils/interaction.js");
+        const { default: config } = await import("../config/snippet_config.js");
         console.log('\n--- Code Snippet Configuration ---');
         shouldGenerate = await askQuestion('Do you want to generate/update code snippets?');
 
@@ -42,9 +73,6 @@ export const manageCodeSnippets = async () => {
     }
 
     if (shouldGenerate) {
-        // Generate Snippets (updates presentation.json on disk)
-        // Dynamic import to save startup time if we were to skip it (though now we default to run)
-        // But it still helps if we add a --skip-snippets flag later or if logic changes.
         const { generateAllSnippets } = await import("../utils/generate_code_snippet.js");
         await generateAllSnippets({
             theme,
@@ -55,4 +83,3 @@ export const manageCodeSnippets = async () => {
         console.log('Skipping code snippet generation.');
     }
 };
-

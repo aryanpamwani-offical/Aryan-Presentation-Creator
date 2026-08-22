@@ -1,5 +1,5 @@
-import { generateAllSnippets } from './Presentation/utils/generate_code_snippet.js';
-import config from './Presentation/config/snippet_config.js';
+import { generateAllSnippets } from '../Presentation/utils/generate_code_snippet.js';
+import config from '../Presentation/config/snippet_config.js';
 import readline from 'readline';
 
 async function selectOption(promptText, options) {

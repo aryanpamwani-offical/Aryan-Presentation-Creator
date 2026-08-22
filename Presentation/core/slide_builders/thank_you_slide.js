@@ -5,7 +5,7 @@ import {
     translateX_and_translateY,
     updateParagraphStyle
 } from "../../utils/text_utils.js";
-import { slideTypes } from "../../constants/theme/slide_types.js";
+import { slideTypes } from "../../constants/theme/index.js";
 
 const buildThankYouSlide = (thankYouPageId, thankYouElements) => {
     const requests = [];

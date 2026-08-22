@@ -1,18 +1,176 @@
 import fs from 'fs';
 import path from 'path';
-import puppeteer from 'puppeteer';
+import https from 'https';
+import satori from 'satori';
+import { Resvg } from '@resvg/resvg-js';
+import { parse } from 'node-html-parser';
+import juice from 'juice';
 import hljs from 'highlight.js';
 import config from '../config/snippet_config.js';
 import saveJSONFile from '../ai-core/saveJSONFile.js';
 import AuthWithGoogle from '../config/auth/google-oauth.js';
 import uploadImageToDrive from '../config/drive/google_drive.js';
-import resizeAndSaveImage from './image_compress_utils.js';
+import resizeAndSaveImage from './image_helper.js';
+import { renderWithWorkerPool } from './snippet_worker_pool.js';
+
+const TAILWIND_LOCAL_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'tailwind.min.js');
+const FONT_PATH = path.resolve(process.cwd(), 'Presentation', 'templates', 'font.ttf');
+
+const GRADIENTS = {
+    hyper: 'linear-gradient(to bottom right, #d946ef, #dc2626, #fb923c)',
+    oceanic: 'linear-gradient(to bottom right, #86efac, #3b82f6, #9333ea)',
+    candy: 'linear-gradient(to bottom right, #fbcfe8, #d8b4fe, #818cf8)',
+    sublime: 'linear-gradient(to bottom right, #fb7185, #d946ef, #6366f1)',
+    horizon: 'linear-gradient(to bottom right, #f97316, #fde047)',
+    coral: 'linear-gradient(to bottom right, #60a5fa, #34d399)',
+    peach: 'linear-gradient(to bottom right, #fb7185, #fdba74)',
+    flamingo: 'linear-gradient(to bottom right, #f472b6, #db2777)',
+    gotham: 'linear-gradient(to bottom right, #374151, #111827, #000000)',
+    ice: 'linear-gradient(to bottom right, #ffe4e6, #ccfbf1)'
+};
+
+// ── Module-level caches (populated once, reused across all slides) ────────────
+let _fontBuffer = null;          // font.ttf binary
+let _templateHtml = null;        // code_snippet_template.html content
+let _snippetCss = null;          // snippet_styles.css content
+const _themeCssCache = new Map();// highlight.js theme CSS, keyed by themeKey
+
+function getCachedFont() {
+    if (!_fontBuffer) _fontBuffer = fs.readFileSync(FONT_PATH);
+    return _fontBuffer;
+}
+
+function getCachedTemplate() {
+    if (!_templateHtml) {
+        const templatePath = path.resolve(process.cwd(), 'Presentation', 'templates', 'code_snippet_template.html');
+        _templateHtml = fs.readFileSync(templatePath, 'utf8');
+    }
+    return _templateHtml;
+}
+
+function getCachedCss() {
+    if (!_snippetCss) {
+        const cssPath = path.resolve(process.cwd(), 'Presentation', 'templates', 'snippet_styles.css');
+        _snippetCss = fs.readFileSync(cssPath, 'utf8');
+    }
+    return _snippetCss;
+}
+
+async function getCachedThemeCss(themeObj, themeKey) {
+    if (_themeCssCache.has(themeKey)) return _themeCssCache.get(themeKey);
+
+    let themeCss = '';
+    try {
+        if (themeObj.theme.includes('styles/')) {
+            const relativePath = themeObj.theme.split('styles/')[1];
+            const localPath = path.resolve(process.cwd(), 'node_modules', 'highlight.js', 'styles', relativePath.replace('.min.css', '.css'));
+            if (fs.existsSync(localPath)) {
+                themeCss = fs.readFileSync(localPath, 'utf8');
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Failed to load local highlight theme CSS:', e.message);
+    }
+
+    if (!themeCss) {
+        try {
+            const res = await fetch(themeObj.theme);
+            themeCss = await res.text();
+        } catch (e) {
+            console.warn('⚠️ Failed to fetch highlight theme CSS online.');
+        }
+    }
+
+    _themeCssCache.set(themeKey, themeCss);
+    return themeCss;
+}
+
+// Function to pre-download Tailwind (handles redirects)
+export const downloadTailwindIfNeeded = async () => {
+    if (fs.existsSync(TAILWIND_LOCAL_PATH)) {
+        return;
+    }
+    console.log('📥 Downloading Tailwind CDN script locally for offline rendering...');
+    
+    if (typeof Bun !== 'undefined') {
+        try {
+            const res = await fetch('https://cdn.tailwindcss.com');
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            await Bun.write(TAILWIND_LOCAL_PATH, res);
+            console.log('✅ Saved tailwind.min.js locally using Bun.');
+            return;
+        } catch (e) {
+            console.warn('⚠️ Bun fetch failed, falling back to Node.js downloader...', e.message);
+        }
+    }
+
+    const download = (url) => {
+        return new Promise((resolve, reject) => {
+            https.get(url, (res) => {
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    const nextUrl = res.headers.location.startsWith('http') 
+                        ? res.headers.location 
+                        : new URL(res.headers.location, url).toString();
+                    download(nextUrl).then(resolve).catch(reject);
+                    return;
+                }
+                if (res.statusCode !== 200) {
+                    reject(new Error(`Failed to download Tailwind: ${res.statusCode}`));
+                    return;
+                }
+                const fileStream = fs.createWriteStream(TAILWIND_LOCAL_PATH);
+                res.pipe(fileStream);
+                fileStream.on('finish', () => {
+                    fileStream.close();
+                    console.log('✅ Saved tailwind.min.js locally.');
+                    resolve();
+                });
+            }).on('error', (err) => {
+                reject(err);
+            });
+        });
+    };
+    return download('https://cdn.tailwindcss.com');
+};
+
+// Function to pre-download Font (handles redirects)
+export const downloadFontIfNeeded = async () => {
+    if (fs.existsSync(FONT_PATH)) {
+        return;
+    }
+    console.log('📥 Downloading JetBrains Mono font locally for offline Satori rendering...');
+    if (typeof Bun !== 'undefined') {
+        try {
+            const res = await fetch('https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf');
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            await Bun.write(FONT_PATH, res);
+            console.log('✅ Saved font.ttf locally using Bun.');
+            return;
+        } catch (e) {
+            console.warn('⚠️ Bun font fetch failed, falling back to Node.js downloader...', e.message);
+        }
+    }
+    return new Promise((resolve, reject) => {
+        https.get('https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/ttf/JetBrainsMono-Regular.ttf', (res) => {
+            if (res.statusCode !== 200) {
+                reject(new Error(`Failed to download Font: ${res.statusCode}`));
+                return;
+            }
+            const fileStream = fs.createWriteStream(FONT_PATH);
+            res.pipe(fileStream);
+            fileStream.on('finish', () => {
+                fileStream.close();
+                console.log('✅ Saved font.ttf locally.');
+                resolve();
+            });
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+};
 
 /**
  * Detects the programming language from code content
- * @param {string} code - The code to analyze
- * @param {string} explicitLanguage - Explicitly provided language (takes precedence)
- * @returns {string} Detected language
  */
 function detectLanguage(code, explicitLanguage = null) {
     if (explicitLanguage) {
@@ -20,6 +178,26 @@ function detectLanguage(code, explicitLanguage = null) {
     }
 
     const trimmedCode = code.trim().toLowerCase();
+
+    // Smart detection for HTML
+    if (trimmedCode.includes('<!doctype html>') || 
+        trimmedCode.includes('<html') || 
+        trimmedCode.includes('<div') || 
+        trimmedCode.includes('<span') || 
+        trimmedCode.includes('<style') ||
+        trimmedCode.includes('</style>') ||
+        trimmedCode.includes('</div>')) {
+        return 'html';
+    }
+
+    // Smart detection for CSS
+    if (trimmedCode.includes('display:') || 
+        trimmedCode.includes('color:') || 
+        trimmedCode.includes('background-color:') || 
+        trimmedCode.includes('margin:') || 
+        trimmedCode.includes('padding:')) {
+        return 'css';
+    }
 
     // Check patterns
     for (const [pattern, language] of Object.entries(config.languagePatterns)) {
@@ -32,236 +210,232 @@ function detectLanguage(code, explicitLanguage = null) {
 }
 
 /**
- * Generates HTML from template with replacements
- * @param {object} snippet - Snippet data
- * @returns {string} Generated HTML
+ * Parses HTML string into Satori-compatible VNode structure
  */
-function generateHTML(snippet, options = {}) {
-    const templatePath = path.resolve(process.cwd(), 'Presentation', 'templates', 'code_snippet_template.html');
-    let html = fs.readFileSync(templatePath, 'utf8');
+function htmlToSatori(htmlString) {
+    const root = parse(htmlString.trim(), {
+        blockTextElements: {
+            script: true,
+            noscript: true,
+            style: true
+        }
+    });
+    
+    function parseNode(node, inCode = false) {
+        if (node.nodeType === 3) {
+            return inCode ? node.textContent : node.textContent.trim().replace(/\s+/g, ' ');
+        }
+        
+        if (node.nodeType === 1) {
+            let type = node.tagName.toLowerCase();
+            const props = {};
+            
+            const isCodeElement = type === 'pre' || type === 'code' || node.attributes.class?.includes('code-line');
+            const nextInCode = inCode || isCodeElement;
+            
+            // Map pre and code tags to div for Satori layout compliance
+            if (type === 'pre' || type === 'code') {
+                type = 'div';
+            }
+            
+            for (const [key, val] of Object.entries(node.attributes)) {
+                if (key === 'class') {
+                    props.className = val;
+                } else if (key === 'style') {
+                    const styleObj = {};
+                    val.split(';').forEach(styleRule => {
+                        const parts = styleRule.split(':');
+                        if (parts.length >= 2) {
+                            const styleKey = parts[0].trim().replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                            styleObj[styleKey] = parts.slice(1).join(':').trim();
+                        }
+                    });
+                    props.style = styleObj;
+                } else {
+                    props[key] = val;
+                }
+            }
+            
+            // Enforce display: flex on all div wrappers with children to satisfy Satori
+            if (type === 'div') {
+                props.style = props.style || {};
+                if (!props.style.display) {
+                    props.style.display = 'flex';
+                    props.style.flexDirection = 'column';
+                }
+            }
+            
+            const children = node.childNodes
+                .map(child => parseNode(child, nextInCode))
+                .filter(child => {
+                    if (typeof child === 'string') {
+                        if (nextInCode) return true;
+                        return child.trim().length > 0;
+                    }
+                    return !!child;
+                });
+                
+            if (children.length > 0) {
+                props.children = children.length === 1 ? children[0] : children;
+            }
+            
+            return { type, props };
+        }
+        
+        return null;
+    }
+    
+    const container = root.querySelector('.snippet-container');
+    if (container) {
+        return parseNode(container);
+    }
+    for (const child of root.childNodes) {
+        if (child.nodeType === 1) {
+            return parseNode(child);
+        }
+    }
+    return null;
+}
 
-    // Default options from config if not provided
+/**
+ * Generates inline-styled HTML markup using highlight.js and juice
+ */
+async function generateInlinedHTML(snippet, options = {}) {
     const themeKey = options.theme || config.defaultTheme;
     const fontKey = options.font || config.defaultFont;
 
     const themeObj = config.themes[themeKey] || config.themes[config.defaultTheme];
     const fontObj = config.fonts[fontKey] || config.fonts[config.defaultFont];
 
-    // Server-side syntax highlighting with highlight.js
+    // Load templates and styles from cache (read once, reused per slide)
+    let htmlContent = getCachedTemplate();
+    const cssContent = getCachedCss();
+
+    // Highlight code using Highlight.js
     let highlightedCode;
     const language = detectLanguage(snippet.codeblock, snippet.language);
     const title = snippet.title || '';
-
-    // Check if we should use auto-detection or specific language
     const validLanguage = hljs.getLanguage(language);
 
     if (validLanguage) {
         try {
             highlightedCode = hljs.highlight(snippet.codeblock, { language: language }).value;
         } catch (e) {
-            console.warn(`Failed to highlight with language ${language}, falling back to auto`);
             const result = hljs.highlightAuto(snippet.codeblock);
             highlightedCode = result.value;
         }
     } else {
-        // Auto-detect if language is invalid or default
         const result = hljs.highlightAuto(snippet.codeblock);
         highlightedCode = result.value;
     }
 
-    // Inject Tailwind CDN for gradients
-    const tailwindCDN = '<script src="https://cdn.tailwindcss.com"></script>';
-    html = html.replace('</head>', `${tailwindCDN}\n</head>`);
+    // Load theme CSS from cache (avoids re-reading disk or re-fetching per slide)
+    const themeCss = await getCachedThemeCss(themeObj, themeKey);
 
-    // Inject Font CSS
-    const fontLink = `<link href="${fontObj.src}" rel="stylesheet">`;
-    html = html.replace('</head>', `${fontLink}\n</head>`);
+    // Inject CSS styles into the template
+    htmlContent = htmlContent.replace('<link rel="stylesheet" href="./snippet_styles.css">', `
+        <style>
+            ${cssContent}
+            ${themeCss}
+        </style>
+    `);
 
-    // Inject Hightlight.js Theme CSS
-    const themeLink = `<link rel="stylesheet" href="${themeObj.theme}">`;
-    html = html.replace('</head>', `${themeLink}\n</head>`);
-
-    // Replace placeholders
-    html = html.replace(/\{\{THEME\}\}/g, themeKey);
-    // Note: We don't need {{LANGUAGE}} anymore since we inject highlighted code directly
-    // But we might want to keep the class in the wrapper if needed for CSS
-    // The highlightedCode already contains spans with classes.
-    html = html.replace(/\{\{CODE\}\}/g, highlightedCode);
-
-    // We also need to remove the <pre><code ...> wrapper from the template or adjust here.
-    // The current template has: <pre><code class="language-{{LANGUAGE}}">{{CODE}}</code></pre>
-    // hljs.highlight returns just the inner HTML of the code block. 
-    // So we just need to replace {{LANGUAGE}} with the detected/used language_name
-
-    const usedLanguage = validLanguage ? language : 'plaintext'; // simplified
-    html = html.replace(/\{\{LANGUAGE\}\}/g, usedLanguage);
-
-    // Apply Font Family
-    html = html.replace('<style>', `<style>\n    code, pre { font-family: ${fontObj.fontFamily} !important; }\n`);
-
-
-    // Apply Background Gradient to Container
-    // We update {{CONTAINER_CLASS}} based on omitBackground
+    // Prepare container class with gradient background (inlined style)
     const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
-
-    let containerClass = "";
+    let containerStyle = '';
+    
     if (!omitBackground) {
-        // Add padding to show the background gradient
-        containerClass = `${themeObj.background} p-12 rounded-xl`;
+        const gradientCss = GRADIENTS[themeKey] || GRADIENTS[config.defaultTheme];
+        containerStyle = `background-image: ${gradientCss}; padding: 48px; border-radius: 12px; display: flex;`;
     } else {
-        // Transparent mode: Minimal padding/margin
-        containerClass = "p-1 bg-transparent";
+        containerStyle = `background: transparent; padding: 4px; display: flex;`;
     }
 
-    html = html.replace('{{CONTAINER_CLASS}}', containerClass);
+    // Split highlighted code by newline and wrap each line in a flex-row div
+    const codeLines = highlightedCode.split('\n').map(line => {
+        return `<div class="code-line" style="display: flex; flex-direction: row; align-items: center; min-height: 20px; white-space: pre; color: #e5e7eb;">${line || ' '}</div>`;
+    }).join('');
 
-    // Handle conditional title
+    // Inject styles and replace placeholders
+    htmlContent = htmlContent.replace('class="snippet-container {{CONTAINER_CLASS}}', `class="snippet-container" style="${containerStyle}"`);
+    
+
+
+    htmlContent = htmlContent.replace(/\{\{THEME\}\}/g, themeKey);
+    htmlContent = htmlContent.replace(/\{\{LANGUAGE\}\}/g, language);
+    htmlContent = htmlContent.replace(/\{\{CODE\}\}/g, codeLines);
+
     if (title) {
-        html = html.replace(/\{\{#if TITLE\}\}/g, '');
-        html = html.replace(/\{\{\/if\}\}/g, '');
-        html = html.replace(/\{\{TITLE\}\}/g, title);
+        htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}/g, '');
+        htmlContent = htmlContent.replace(/\{\{\/if\}\}/g, '');
+        htmlContent = htmlContent.replace(/\{\{TITLE\}\}/g, title);
     } else {
-        html = html.replace(/\{\{#if TITLE\}\}[\s\S]*?\{\{\/if\}\}/g, '');
+        htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}[\s\S]*?\{\{\/if\}\}/g, '');
     }
 
-    return html;
+    // Inline all CSS properties using Juice
+    return juice(htmlContent);
 }
 
 /**
- * Helper to retry a function
+ * Generates a code snippet image using Satori + Resvg
  */
-async function retryOperation(operation, updatedParams = [], retries = 3, delay = 2000) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            return await operation(...updatedParams);
-        } catch (error) {
-            if (i === retries - 1) throw error;
-            console.warn(`⚠️ Operation failed (attempt ${i + 1}/${retries}). Retrying in ${delay}ms...`, error.message);
-            await new Promise(res => setTimeout(res, delay));
-        }
-    }
-}
+export async function generateCodeSnippet(snippet, options = {}, browserInstance = null) {
+    await downloadFontIfNeeded();
 
-/**
- * Generates a code snippet image using Puppeteer
- * @param {object} snippet - Snippet data with codeblock, slide_number, etc.
- * @returns {Promise<string>} Path to generated image
- */
-async function generateCodeSnippet(snippet, options = {}, browserInstance = null) {
-    // Generate HTML content first
-    let html = generateHTML(snippet, options);
+    // Generate inlined HTML markup
+    const inlinedHtml = await generateInlinedHTML(snippet, options);
 
-    // Read CSS content
-    const cssPath = path.resolve(process.cwd(), 'Presentation', 'templates', 'snippet_styles.css');
-    const cssContent = fs.readFileSync(cssPath, 'utf8');
+    // Convert inlined HTML to VNode
+    const vnode = htmlToSatori(inlinedHtml);
 
-    // Inject CSS into HTML
-    html = html.replace('<link rel="stylesheet" href="./snippet_styles.css">', `<style>${cssContent}</style>`);
+    // Read local font file (cached after first load)
+    const fontBuffer = getCachedFont();
 
-    let browser = browserInstance;
-    let ownBrowser = false;
-
-    if (!browser) {
-        browser = await puppeteer.launch({
-            headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        ownBrowser = true;
-    }
-
-    let page;
-
+    // Generate SVG via Satori
+    let svg;
     try {
-        page = await browser.newPage();
-
-        // Initial large viewport to allow rendering
-        await page.setViewport({ width: 1600, height: 1600, deviceScaleFactor: 2 });
-
-        // Set content with strict timeout to prevent hanging
-        try {
-            await page.setContent(html, {
-                waitUntil: 'networkidle0', // 'domcontentloaded' might be faster but networkidle0 ensures font/tailwind load
-                timeout: 30000 // 30s timeout
-            });
-        } catch (e) {
-            console.warn(`⚠️ Page load timeout for slide ${snippet.slide_number}, trying to proceed anyway...`);
-        }
-
-        // Wait for fonts to load explicitly
-        try {
-            await page.evaluateHandle('document.fonts.ready');
-        } catch (e) {
-            // Ignore if it times out, might be fine
-        }
-
-        // Give extra time for rendering (short buffer)
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Get the bounding box of the snippet container dynamically
-        const dimensions = await page.evaluate(() => {
-            const container = document.querySelector('.snippet-container');
-            if (!container) return null;
-
-            // Allow container to fit content naturally
-            container.style.width = 'fit-content';
-            container.style.height = 'fit-content';
-
-            const rect = container.getBoundingClientRect();
-            return {
-                width: Math.ceil(rect.width),
-                height: Math.ceil(rect.height)
-            };
+        svg = await satori(vnode, {
+            width: 800,
+            tailwindConfig: {}, // Supports standard Tailwind spacing/flex utilities
+            fonts: [
+                {
+                    name: 'JetBrains Mono',
+                    data: fontBuffer,
+                    weight: 400,
+                    style: 'normal',
+                }
+            ]
         });
-
-        if (!dimensions) {
-            throw new Error('Snippet container not found');
-        }
-
-        // Resize viewport to match content exactly
-        await page.setViewport({
-            width: dimensions.width,
-            height: dimensions.height,
-            deviceScaleFactor: 2 // High res
-        });
-
-        const element = await page.$('.snippet-container');
-
-        // Prepare output path
-        const outputDir = path.resolve(process.cwd(), config.output.directory);
-        if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-        }
-
-        const fileName = `slide-${snippet.slide_number}.png`;
-        const outputPath = path.join(outputDir, fileName);
-
-        // Take screenshot
-        const omitBackground = options.omitBackground !== undefined ? options.omitBackground : config.screenshot.omitBackground;
-
-        await element.screenshot({
-            path: outputPath,
-            omitBackground: omitBackground,
-            type: config.output.format
-        });
-
-        console.log(`✓ Generated: ${fileName} (${dimensions.width}x${dimensions.height})`);
-        return outputPath;
-
-    } catch (error) {
-        console.error(`Error generating snippet for slide ${snippet.slide_number}:`, error);
-        throw error;
-    } finally {
-        if (page) await page.close();
-        if (ownBrowser && browser) await browser.close();
+    } catch (err) {
+        console.error("VDOM structure causing error:", JSON.stringify(vnode, null, 2));
+        throw err;
     }
-}
 
+    // Rasterize SVG to PNG using Resvg
+    const resvg = new Resvg(svg, {
+        fitTo: { mode: 'width', value: 800 }
+    });
+    const pngBuffer = resvg.render().asPng();
+
+    // Save PNG file to output directory
+    const outputDir = path.resolve(process.cwd(), config.output.directory);
+    if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const fileName = `slide-${snippet.slide_number}.png`;
+    const outputPath = path.join(outputDir, fileName);
+    fs.writeFileSync(outputPath, pngBuffer);
+
+    console.log(`✓ Generated: ${fileName} (800px width via Satori)`);
+    return outputPath;
+}
 
 /**
  * Main function to generate all code snippets from presentation.json, compress, and upload to Google Drive.
  */
-async function generateAllSnippets(options = {}) {
-    let browser;
+export async function generateAllSnippets(options = {}) {
     try {
         const presentationJsonPath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
 
@@ -278,9 +452,7 @@ async function generateAllSnippets(options = {}) {
             return;
         }
 
-        // Filter for code slides
         const codeSlides = slides.filter(slide => slide.type === 'code' && slide.codeblock);
-
         console.log(`\n📸 Found ${codeSlides.length} code slide(s) in presentation.json\n`);
 
         if (codeSlides.length === 0) {
@@ -288,147 +460,77 @@ async function generateAllSnippets(options = {}) {
             return;
         }
 
-        // --- OPTIMIZATION: Identify slides that actually need updates FIRST ---
-        const slidesToUpdate = codeSlides.filter(slide => {
-            // If manual override or missing URL, we need to update
-            if (!slide.imageUrl || (!slide.imageUrl.includes('drive.google.com') && !slide.imageUrl.startsWith('http'))) {
-                return true;
-            }
-            return false;
-        });
-
-        if (slidesToUpdate.length === 0) {
-            console.log("\n✅ All code snippets already have valid URLs. Skipping generation.");
-            return; // EXIT EARLY - NO BROWSER LAUNCH
-        }
-
-        console.log(`\n⚡ ${slidesToUpdate.length} slide(s) need updated snippets. Launching browser...`);
-
-
         // Authenticate Google Drive
         let authClient;
         try {
             authClient = await AuthWithGoogle();
         } catch (e) {
             console.error("❌ Failed to authenticate with Google:", e);
-            // We might still want to generate local images even if auth fails
         }
 
-        // Launch browser once for all slides
-        browser = await puppeteer.launch({
-            headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        let updatedCount = 0;
+
+        // Pre-resolve topicName and outputDir once (avoid repeating per slide)
+        const titleSlide = slides.find(s => s.type === 'title');
+        const topicName = titleSlide ? titleSlide.title : 'General';
+        const outputDir = path.resolve(process.cwd(), config.output.directory);
+        if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+        // ── Phase 1: Render and Upload code slides concurrently (Eager uploads) ─
+        const t1Start = performance.now();
+        const uploadPromises = [];
+        const t2Start = performance.now();
+
+        const rawResults = await renderWithWorkerPool(codeSlides, options, (slide, outputPath) => {
+            if (authClient) {
+                const uploadPromise = (async () => {
+                    try {
+                        const imageUrl = await uploadImageToDrive(authClient, outputPath, topicName);
+                        if (imageUrl) {
+                            slide.imageUrl = imageUrl;
+                            console.log(`✅ slide-${slide.slide_number}.png → ${imageUrl}`);
+                        }
+                        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+                        updatedCount++;
+                    } catch (err) {
+                        console.error(`❌ Upload failed for slide ${slide.slide_number}:`, err.message);
+                    }
+                })();
+                uploadPromises.push(uploadPromise);
+            }
         });
 
-        let updatedCount = 0;
-        const CONCURRENCY_LIMIT = 5;
+        const t1Ms = (performance.now() - t1Start).toFixed(0);
 
-        // Save helper
-        const saveProgress = () => {
-            const saveSuccess = saveJSONFile(JSON.stringify(slides, null, 4));
-            if (saveSuccess) {
-                // console.log("💾 presentation.json updated.");
-            } else {
-                console.error("❌ Failed to save presentation.json progress.");
-            }
-        };
+        // Normalise results shape to { slide, localImagePath, error }
+        const renderResults = rawResults.map(r => {
+            if (r.outputPath) r.slide.image = r.outputPath;
+            return { slide: r.slide, localImagePath: r.outputPath, error: r.error };
+        });
 
-        // Helper to process a single slide
-        const processSlide = async (slide) => {
-            // Double check (though we filtered already, good for robustness if we change logic later)
-            if (slide.imageUrl && (slide.imageUrl.includes('drive.google.com') || slide.imageUrl.startsWith('http'))) {
-                // Should not happen for slidesToUpdate but safe to keep
-                return false;
-            }
-
-            try {
-                console.log(`Processing slide ${slide.slide_number}...`);
-
-                // Generate local image (with timeout protection via generateCodeSnippet)
-                const imagePath = await generateCodeSnippet(slide, options, browser);
-                slide.image = imagePath;
-
-                // Upload logic
-                if (authClient) {
-                    // Compress image
-                    const baseImageDir = path.dirname(imagePath);
-                    const tempDir = path.join(baseImageDir, 'temp_storage');
-                    if (!fs.existsSync(tempDir)) {
-                        fs.mkdirSync(tempDir, { recursive: true });
-                    }
-
-                    let uploadPath = imagePath;
-                    try {
-                        const compressedPath = await resizeAndSaveImage(imagePath, tempDir, 'SkipResize');
-                        if (compressedPath) {
-                            uploadPath = compressedPath;
-                        }
-                    } catch (compErr) {
-                        console.warn("Compression failed, using original:", compErr.message);
-                    }
-
-                    // Upload with Retry
-                    console.log(`Uploading ${path.basename(uploadPath)}...`);
-                    const imageUrl = await retryOperation(uploadImageToDrive, [authClient, uploadPath], 3, 2000);
-
-                    if (imageUrl) {
-                        console.log(`☁ Uploaded: ${imageUrl}`);
-                        slide.imageUrl = imageUrl;
-
-                        // Cleanup temp files
-                        try {
-                            if (uploadPath !== imagePath && fs.existsSync(uploadPath)) fs.unlinkSync(uploadPath);
-                            if (imagePath && fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
-                        } catch (cleanupErr) {
-                            // ignore
-                        }
-
-                        return true; // Updated
-                    } else {
-                        console.warn(`⚠️ Upload returned no URL for slide ${slide.slide_number}`);
-                    }
-                } else {
-                    console.warn("Skipping upload (No Auth)");
-                }
-            } catch (err) {
-                console.error(`❌ Failed to process slide ${slide.slide_number}:`, err.message);
-            }
-            return false;
-        };
-
-        // Batch Processing - ONLY operate on slidesToUpdate
-        for (let i = 0; i < slidesToUpdate.length; i += CONCURRENCY_LIMIT) {
-            const batch = slidesToUpdate.slice(i, i + CONCURRENCY_LIMIT);
-            console.log(`\n--- Processing Batch ${Math.floor(i / CONCURRENCY_LIMIT) + 1}/${Math.ceil(slidesToUpdate.length / CONCURRENCY_LIMIT)} ---`);
-
-            // Run batch in parallel
-            const results = await Promise.all(batch.map(slide => processSlide(slide)));
-
-            // Check if any updates in this batch
-            if (results.some(r => r)) {
-                updatedCount += results.filter(r => r).length;
-                saveProgress(); // Incremental save after batch
-                console.log("💾 Batch progress saved.");
-            }
+        // ── Phase 2: Await any remaining uploads ──────────────────────────────
+        let t2Ms = 0;
+        if (authClient && uploadPromises.length > 0) {
+            console.log(`\n📤 Waiting for remaining Drive uploads to complete...`);
+            await Promise.all(uploadPromises);
+            t2Ms = (performance.now() - t2Start).toFixed(0);
+        } else {
+            updatedCount = renderResults.filter(r => r.localImagePath).length;
         }
 
         if (updatedCount > 0) {
-            console.log(`\n✨ Successfully updated ${updatedCount} code snippet(s)!`);
-        } else {
-            console.log("\n✅ No new updates required.");
+            await saveJSONFile(JSON.stringify(slides, null, 2), 'presentation.json');
+            console.log(`\n🎉 Successfully updated ${updatedCount} code snippets in presentation.json`);
         }
 
+        // ── Pipeline timing summary ───────────────────────────────────────────
+        const totalMs = (performance.now() - t1Start).toFixed(0);
+        console.log(`\n⏱️  Pipeline timing:`);
+        console.log(`   🖼️  Render phase  : ${t1Ms}ms`);
+        if (authClient) console.log(`   ☁️  Upload phase  : ${t2Ms}ms (overlapping with render)`);
+        console.log(`   ⚡ Total (Wall)  : ${totalMs}ms  (${(totalMs / 1000).toFixed(2)}s)`);
+
     } catch (error) {
-        console.error('❌ Error in generateAllSnippets:', error);
-    } finally {
-        if (browser) await browser.close();
+        console.error('❌ generateAllSnippets failed:', error);
     }
-}
-
-// Export functions
-export { generateCodeSnippet, generateAllSnippets, detectLanguage };
-
-// Run if executed directly
-if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, '/')}`) {
-    generateAllSnippets();
 }

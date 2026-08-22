@@ -5,8 +5,7 @@ import {
     translateX_and_translateY,
     updateParagraphStyle
 } from "../../utils/text_utils.js";
-import { slideTypes } from "../../constants/theme/slide_types.js";
-import THEME_COLORS from "../../constants/theme/theme_colors.js";
+import { slideTypes, THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     const requests = [];
@@ -69,8 +68,11 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     // --- 2-COLUMN LAYOUT CONTENT ---
 
     // Layout Constants
+    const titleWordCount = title ? title.trim().split(/\s+/).filter(Boolean).length : 0;
+    const baseGap = 20;
+    const gapBelowTitle = titleWordCount > 2 ? baseGap + 25 : baseGap; // Add 25pt extra space for 3+ word titles
     const marginX = 50;
-    const startY = titleTransform.translateY + titleHeight + 20; // Start below title
+    const startY = titleTransform.translateY + titleHeight + gapBelowTitle; // Start below title with adjusted gap
     const contentHeight = 405 - startY - 20; // Remaining height (approx)
     const slideWidth = 720;
     const gap = 30;
@@ -89,7 +91,9 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
 
     // --- RIGHT COLUMN: CODE IMAGE ---
     const imageElementId = slideElements.image || slideElements.title + "_image";
-    const imageHeight = 250; // Max height constraints
+    // Reduce image height when title has 3+ words to accommodate spacing
+    const baseImageHeight = 250;
+    const imageHeight = titleWordCount > 2 ? baseImageHeight - 25 : baseImageHeight; // Reduce image height for 3+ word titles
 
     const imageTransform = {
         scaleX: 1,
@@ -136,6 +140,8 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     if (codeTitle) {
         const codeTitleId = slideElements.title + "_sub";
         const codeTitleHeight = 30;
+        const codeTitleWordCount = codeTitle ? codeTitle.trim().split(/\s+/).filter(Boolean).length : 0;
+        const codeTitleBottomSpace = codeTitleWordCount > 2 ? 15 : 0; // Add 15pt extra space for 3+ word codeTitle
 
         requests.push({
             createShape: {
@@ -165,6 +171,7 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
 
         // Style Code Title - Bold, Accent Color?
         requests.push(selectTextStyle("subHeading", codeTitleId)); // Use h2 style or similar
+        requests.push(updateParagraphStyle(codeTitleId, "START"));
         requests.push({
             updateTextStyle: {
                 objectId: codeTitleId,
@@ -177,7 +184,7 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
             }
         });
 
-        currentTextY += codeTitleHeight + 10;
+        currentTextY += codeTitleHeight + 10 + codeTitleBottomSpace;
     }
 
     // 2. Description/Caption
@@ -212,6 +219,7 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
         });
 
         requests.push(selectTextStyle("body", captionElementId));
+        requests.push(updateParagraphStyle(captionElementId, "START"));
         requests.push({
             updateTextStyle: {
                 objectId: captionElementId,

@@ -8,12 +8,12 @@ import path from "path";
  * @param {string} presentationId - The ID of the Google Slides presentation.
  * @param {string} outputName - The desired name for the output PDF file.
  */
-const exportPresentationToPDF = async (presentationId, outputName = "Presentation.pdf") => {
+const exportPresentationToPDF = async (presentationId, outputName = "Presentation.pdf", auth = null) => {
     try {
         console.log(`\n📄 Starting PDF Export for ID: ${presentationId}...`);
 
-        const auth = await AuthWithGoogle();
-        const drive = google.drive({ version: "v3", auth });
+        const authClient = auth ?? await AuthWithGoogle();
+        const drive = google.drive({ version: "v3", auth: authClient });
 
         const destPath = path.resolve(process.cwd(), "Presentation", "outputs", outputName);
 
