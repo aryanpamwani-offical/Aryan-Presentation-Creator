@@ -2,11 +2,12 @@
 > **Transform text prompts into stunning, ready-to-present Google Slides decks with automatic code screenshots.**
 
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Gemini](https://img.shields.io/badge/Gemini-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![Google Slides](https://img.shields.io/badge/Google%20Slides-FBBC05?style=for-the-badge&logo=googleslides&logoColor=white)](#)
 [![Google Drive](https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](#)
 
-Aryan's Presentation Creator is an automated, high-performance CLI pipeline powered by **Bun**, **Gemini AI**, and the **Google Workspace APIs**. It takes a single topic, generates structured presentation modules, captures beautifully formatted syntax-highlighted code blocks, uploads assets to Drive, constructs the presentation, exports to PDF, and performs automatic cleanup.
+Aryan's Presentation Creator is an automated, high-performance CLI pipeline written in **TypeScript** and powered by **Bun**, **Gemini AI**, and the **Google Workspace APIs**. It takes a single topic, generates structured presentation modules, captures beautifully formatted syntax-highlighted code blocks, uploads assets to Drive, constructs the presentation, exports to PDF, and performs automatic cleanup.
 
 ---
 
@@ -21,6 +22,7 @@ Aryan's Presentation Creator is an automated, high-performance CLI pipeline powe
 
 ## ✨ Features
 
+*   **🛡️ Type-Safe Architecture** — Built with strictly typed models, custom type guards, and compile-time verification to prevent data-structure inconsistencies and API model mismatches.
 *   **🤖 AI-Powered Content Synthesis** — Uses the official `@google/genai` SDK and `gemini-2.5-flash` to craft educational course outlines and detailed content slides.
 *   **🎨 Syntax-Highlighted Screenshots** — Automatically parses markdown code blocks and renders them into high-res syntax-highlighted code editor images via **Satori** and **Resvg**.
 *   **⚡ Multi-Threaded Rendering** — Utilizes native **Bun Workers** to compile HTML/CSS snippets into PNGs concurrently, scaling with your CPU cores.
@@ -93,13 +95,13 @@ GOOGLE_MODEL=gemini-2.5-flash
 
 To run the full presentation generation pipeline:
 
-1.  Open [`index.js`](file:///C:/Users/DELL/Desktop/Superprof-Presentation-Creator/index.js) and update the `TOPIC` constant at the top of the file:
-    ```javascript
+1.  Open [`index.ts`](file:///C:/Users/DELL/Desktop/Superprof-Presentation-Creator/index.ts) and update the `TOPIC` constant at the top of the file:
+    ```typescript
     const TOPIC = "Mastering CSS Flexbox Layouts";
     ```
 2.  Start the script:
     ```bash
-    bun index.js
+    bun index.ts
     ```
 3.  **Authentication**: If it's your first time running, your web browser will automatically open to authenticate with Google. Grant permissions and the script will automatically capture the token and continue.
 
@@ -108,6 +110,7 @@ To run the full presentation generation pipeline:
 ## 🛠️ Built With
 
 *   **Runtime:** [Bun](https://bun.sh/) (Native file I/O, Workers, and Server APIs)
+*   **Language:** [TypeScript](https://www.typescriptlang.org/) (Strict structural type definitions)
 *   **AI Engine:** [@google/genai](https://www.npmjs.com/package/@google/genai) (Official Google Gemini SDK)
 *   **APIs:** [googleapis](https://www.npmjs.com/package/googleapis) (Google Drive & Google Slides)
 *   **Graphics:** [Satori](https://github.com/vercel/satori) & [Resvg](https://github.com/yisibl/resvg-js) (Fast SVG compilation & PNG rendering)
@@ -120,16 +123,16 @@ To run the full presentation generation pipeline:
 ```text
 Aryan-Presentation-Creator/
 ├── Presentation/
-│   ├── ai-core/             # Gemini API interfaces
-│   ├── config/              # Google Auth & styling configurations
-│   ├── core/                # Layout components & presentation compilers
-│   ├── media/               # Caches & temporary local images
-│   ├── templates/           # Styling templates & Tailwind config
-│   └── utils/               # PDF exporters & multi-threaded workers
-├── scripts/                 # Asset builders & maintenance utilities
+│   ├── ai-core/             # Gemini API interfaces (.ts)
+│   ├── config/              # Google Auth & styling configurations (.ts)
+│   ├── core/                # Layout components & presentation compilers (.ts)
+│   ├── media/               # Caches & temporary local images (.json)
+│   ├── templates/           # Styling templates & Tailwind config (.html / .css)
+│   └── utils/               # PDF exporters & multi-threaded workers (.ts)
+├── scripts/                 # Asset builders & maintenance utilities (.js)
 ├── credentials.json         # Google OAuth Credentials (gitignore)
 ├── token.json               # Cached user session (gitignore)
-├── index.js                 # App Entry point
+├── index.ts                 # App Entry point (.ts)
 └── README.md                # Documentation
 ```
 
