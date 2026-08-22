@@ -8,8 +8,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prod": "bun index.js",
-    "dev": "bun run scripts/generate_snippets_local.js"
+    "prod": "bun index.ts -i",
+    "dev": "bun run scripts/generate_snippets_local.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.52.0",

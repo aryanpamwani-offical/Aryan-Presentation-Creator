@@ -2,11 +2,11 @@ import readline from 'readline';
 
 /**
  * Prompts the user to select an option from a list
- * @param {string} promptText - The prompt message (e.g., "Select Theme:")
- * @param {object} options - Object containing options (e.g., config.themes)
- * @returns {Promise<string>} - The key of the selected option
+ * @param promptText - The prompt message (e.g., "Select Theme:")
+ * @param options - Object containing options (e.g., config.themes)
+ * @returns - The key of the selected option
  */
-export async function selectOption(promptText, options) {
+export async function selectOption(promptText: string, options: Record<string, any>): Promise<string | null> {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
@@ -36,10 +36,10 @@ export async function selectOption(promptText, options) {
 
 /**
  * Prompts the user with a Yes/No question
- * @param {string} questionText - The question to ask
- * @returns {Promise<boolean>} - True for Yes, False for No
+ * @param questionText - The question to ask
+ * @returns - True for Yes, False for No
  */
-export async function askQuestion(questionText) {
+export async function askQuestion(questionText: string): Promise<boolean> {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
@@ -50,6 +50,25 @@ export async function askQuestion(questionText) {
             rl.close();
             const isYes = answer.trim().toLowerCase() === 'y';
             resolve(isYes);
+        });
+    });
+}
+
+/**
+ * Prompts the user for a text input
+ * @param promptText - The prompt message to display
+ * @returns - The string entered by the user
+ */
+export async function askTextInput(promptText: string): Promise<string> {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    return new Promise((resolve) => {
+        rl.question(`\n${promptText}: `, (answer) => {
+            rl.close();
+            resolve(answer.trim());
         });
     });
 }

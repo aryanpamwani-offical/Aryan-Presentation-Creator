@@ -8,8 +8,7 @@ import path from 'path';
  * @returns {Promise<void>}
  */
 export const manageCodeSnippets = async () => {
-    // Check for interactive flag
-    const isInteractive = process.argv.includes('--interactive');
+    const isInteractive = process.argv.includes('-gi') || process.argv.includes('--generate-interactive');
 
     let theme = 'candy';
     let font = 'firaCode';

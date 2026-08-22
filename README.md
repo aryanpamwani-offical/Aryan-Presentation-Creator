@@ -93,17 +93,25 @@ GOOGLE_MODEL=gemini-2.5-flash
 
 ## 💻 Usage
 
-To run the full presentation generation pipeline:
+To run the full presentation generation pipeline, start the main entry point:
+```bash
+bun index.ts [options] ["Your Topic Name"]
+```
 
-1.  Open [`index.ts`](file:///C:/Users/DELL/Desktop/Superprof-Presentation-Creator/index.ts) and update the `TOPIC` constant at the top of the file:
-    ```typescript
-    const TOPIC = "Mastering CSS Flexbox Layouts";
-    ```
-2.  Start the script:
-    ```bash
-    bun index.ts
-    ```
-3.  **Authentication**: If it's your first time running, your web browser will automatically open to authenticate with Google. Grant permissions and the script will automatically capture the token and continue.
+### ⚙️ Options & Flags:
+*   **Positional Argument** (`"Topic Name"`) — Runs the pipeline directly for a custom topic (e.g. `bun index.ts "Operators in Java"`). If omitted, falls back to the default topic.
+*   **`-i` / `--interactive`** — Prompts you to enter or paste a custom topic name directly in the terminal console.
+*   **`-gi` / `--generate-interactive`** — Prompts you to interactively configure the code snippet styling options (Theme, Font, and Transparent Background).
+*   **`--force`** — Forces a complete rebuild of the topic's presentation and outline (ignores and overwrites the outline and presentation caches).
+
+### 🛠️ Standalone Screenshot Generator:
+You can also generate screenshots locally with custom styling interactively without running the Google Slides pipeline:
+```bash
+bun generate_interactive.ts
+```
+
+### 🔑 Authentication:
+If it's your first time running, your web browser will automatically open to authenticate with Google. Grant permissions and the script will automatically capture the token and continue.
 
 ---
 
@@ -132,7 +140,8 @@ Aryan-Presentation-Creator/
 ├── scripts/                 # Asset builders & maintenance utilities (.js)
 ├── credentials.json         # Google OAuth Credentials (gitignore)
 ├── token.json               # Cached user session (gitignore)
-├── index.ts                 # App Entry point (.ts)
+├── generate_interactive.ts   # Interactive local screenshot compiler (.ts)
+├── index.ts                  # App Entry point (.ts)
 └── README.md                # Documentation
 ```
 
