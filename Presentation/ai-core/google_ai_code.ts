@@ -50,6 +50,7 @@ export default async function google_ai_core(mode = 'presentation', topic) {
           systemInstruction: systemPrompt,
           temperature: 0.7,
           maxOutputTokens: 16384,
+          responseMimeType: 'application/json',
         },
       })
     );

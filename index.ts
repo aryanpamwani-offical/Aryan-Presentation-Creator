@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import crypto from "crypto";
 
 import createSlides from "./Presentation/core/index.js";
 import { manageCodeSnippets } from "./Presentation/core/snippet_manager.js";
@@ -17,7 +18,7 @@ const MEDIA_DIR = path.join(__dirname, "Presentation", "media", "json");
 const JSON_FILE = path.join(MEDIA_DIR, "presentation.json");
 const OUTLINE_FILE = path.join(MEDIA_DIR, "outline.json");
 
-const DEFAULT_TOPIC = "CSS Flexbox Properties  module 1: flexbox introduction, display: flex, main axis and cross axis, flex container and flex items . module 2: Flexbox Parent properties, flex-direction, flex-wrap, flex-flow, justify-content, align-items, align-content . module 3: Flexbox child properties, order, flex-grow, flex-shrink, flex-basis, flex shorthand, align-self . ";
+const DEFAULT_TOPIC = "CSS Units: px, em, rem, %, vh, vw  module 1: Introduction to CSS Units, absolute vs relative units, pixels (px) as a fixed unit . module 2: Relative font units (%, em, rem), inheritance and font scaling, difference between em and rem . module 3: Viewport units (vh, vw) vs percentages (%), responsive fluid design, and best use cases for each unit . ";
 
 function ensureGeminiKey() {
     if (!process.env.GEMINI_API_KEY) {
@@ -26,8 +27,14 @@ function ensureGeminiKey() {
     }
 }
 
+function getTopicSlug(topic: string): string {
+    const cleanTopic = topic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_+|_+$)/g, '');
+    const hash = crypto.createHash('md5').update(topic).digest('hex');
+    return `${cleanTopic.substring(0, 50)}_${hash}`;
+}
+
 function manageTopicCache(topic: string, isForce: boolean) {
-    const slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_+|_+$)/g, '');
+    const slug = getTopicSlug(topic);
     const lastTopicPath = path.join(MEDIA_DIR, "last_topic.txt");
     
     let lastTopic = "";
@@ -54,7 +61,7 @@ function manageTopicCache(topic: string, isForce: boolean) {
     
     // Backup current files to last topic's cache
     if (lastTopic) {
-        const lastSlug = lastTopic.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/(^_+|_+$)/g, '');
+        const lastSlug = getTopicSlug(lastTopic);
         if (fs.existsSync(OUTLINE_FILE)) {
             fs.copyFileSync(OUTLINE_FILE, path.join(MEDIA_DIR, `outline_cache_${lastSlug}.json`));
         }

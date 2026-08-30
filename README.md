@@ -23,12 +23,14 @@ Aryan's Presentation Creator is an automated, high-performance CLI pipeline writ
 ## ✨ Features
 
 *   **🛡️ Type-Safe Architecture** — Built with strictly typed models, custom type guards, and compile-time verification to prevent data-structure inconsistencies and API model mismatches.
-*   **🤖 AI-Powered Content Synthesis** — Uses the official `@google/genai` SDK and `gemini-2.5-flash` to craft educational course outlines and detailed content slides.
+*   **🤖 AI-Powered Content Synthesis** — Uses the official `@google/genai` SDK, configured with `responseMimeType: 'application/json'`, to guarantee syntactically valid JSON presentation schemas.
 *   **🎨 Syntax-Highlighted Screenshots** — Automatically parses markdown code blocks and renders them into high-res syntax-highlighted code editor images via **Satori** and **Resvg**.
 *   **⚡ Multi-Threaded Rendering** — Utilizes native **Bun Workers** to compile HTML/CSS snippets into PNGs concurrently, scaling with your CPU cores.
 *   **🔑 Fully Automated OAuth2 Flow** — Automatically spins up a temporary background server on port `8080` to intercept and complete the Google login redirect. No manual copy-pasting of authorization codes required.
 *   **📄 Automated PDF Export** — Downloads a high-quality PDF version of the presentation directly to your local computer.
 *   **🧹 Cloud Storage Cleanup** — Temporarily uploads screenshot assets to Google Drive for slide compilation and automatically purges the files once done, keeping your Drive clean.
+*   **📁 Safe Filename Caching** — Uses MD5 hashing to generate shortened, safe filenames for cache files, avoiding Windows `MAX_PATH` character limits (260 characters) and single-file length limits (255 characters) for very long topic prompts.
+*   **⌨️ Robust Multi-line Input** — Supports pasting complex, multi-line topic names directly into the CLI when in interactive mode, capturing text until a double Enter (empty line) is received.
 
 ---
 

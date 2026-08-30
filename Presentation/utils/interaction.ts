@@ -65,10 +65,20 @@ export async function askTextInput(promptText: string): Promise<string> {
         output: process.stdout
     });
 
+    console.log(`\n${promptText} (Press Enter on an empty line to submit):`);
+
     return new Promise((resolve) => {
-        rl.question(`\n${promptText}: `, (answer) => {
-            rl.close();
-            resolve(answer.trim());
+        const lines: string[] = [];
+        rl.on('line', (line) => {
+            if (line.trim() === '') {
+                rl.close();
+            } else {
+                lines.push(line);
+            }
+        });
+
+        rl.on('close', () => {
+            resolve(lines.join('\n').trim());
         });
     });
 }
