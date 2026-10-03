@@ -37,9 +37,11 @@ export const manageCodeSnippets = async () => {
                     });
                 await Promise.all(checkPromises);
 
-                const needsUpdate = codeSlides.some(slide => !slide.imageUrl || (!slide.imageUrl.startsWith('http') && !slide.imageUrl.includes('drive.google.com')));
+                // Google Drive integration commented out for code snippets in favor of Cloudflare R2:
+                // If snippet has an old drive.google.com URL or missing URL, it will be uploaded to Cloudflare R2
+                const needsUpdate = codeSlides.some(slide => !slide.imageUrl || !slide.imageUrl.startsWith('http') || slide.imageUrl.includes('drive.google.com'));
                 if (!needsUpdate && !isInteractive) {
-                    console.log('✅ All code snippets already have valid URLs. Skipping snippet generation step.');
+                    console.log('✅ All code snippets already have valid Cloudflare R2 URLs. Skipping snippet generation step.');
                     return;
                 }
             }
@@ -72,7 +74,8 @@ export const manageCodeSnippets = async () => {
     }
 
     if (shouldGenerate) {
-        const { generateAllSnippets } = await import("../utils/generate_code_snippet.js");
+        const { generateAllSnippets, downloadFontIfNeeded } = await import("../utils/generate_code_snippet.js");
+        await downloadFontIfNeeded();
         await generateAllSnippets({
             theme,
             font,

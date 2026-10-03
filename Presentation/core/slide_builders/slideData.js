@@ -1,12 +1,52 @@
 import fs from 'fs';
 import path from 'path';
 
+export const unescapeText = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  let text = str;
+  text = text.replace(/\\+r\\+n/gi, '\n');
+  text = text.replace(/\\+n/gi, '\n');
+  text = text.replace(/\\+r/gi, '\n');
+  text = text.replace(/\r\n/g, '\n');
+  text = text.replace(/\r/g, '\n');
+  text = text.replace(/\\+\n/g, '\n');
+  text = text.replace(/\n\\+/g, '\n');
+  return text;
+};
+
 export const loadSlidesData = () => {
   try {
     const filePath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
     if (fs.existsSync(filePath)) {
       const rawData = fs.readFileSync(filePath, 'utf8');
-      return JSON.parse(rawData);
+      const data = JSON.parse(rawData);
+      if (Array.isArray(data)) {
+        return data.map((slide) => {
+          if (typeof slide.body === 'string') {
+            slide.body = unescapeText(slide.body);
+          }
+          if (typeof slide.description === 'string') {
+            slide.description = unescapeText(slide.description);
+          }
+          if (typeof slide.caption === 'string') {
+            slide.caption = unescapeText(slide.caption);
+          }
+          if (typeof slide.title === 'string') {
+            slide.title = unescapeText(slide.title);
+          }
+          if (typeof slide.codeTitle === 'string') {
+            slide.codeTitle = unescapeText(slide.codeTitle);
+          }
+          if (typeof slide.CodeTitle === 'string') {
+            slide.CodeTitle = unescapeText(slide.CodeTitle);
+          }
+          if (Array.isArray(slide.bullets)) {
+            slide.bullets = slide.bullets.map((b) => typeof b === 'string' ? unescapeText(b) : b);
+          }
+          return slide;
+        });
+      }
+      return data;
     } else {
       console.warn('⚠ presentation.json not found, returning empty array');
       return [];

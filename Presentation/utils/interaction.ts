@@ -1,4 +1,4 @@
-import readline from 'readline';
+import readline from "readline";
 
 /**
  * Prompts the user to select an option from a list
@@ -7,11 +7,6 @@ import readline from 'readline';
  * @returns - The key of the selected option
  */
 export async function selectOption(promptText: string, options: Record<string, any>): Promise<string | null> {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
     const optionsList = Object.keys(options);
 
     console.log(`\n${promptText}`);
@@ -20,14 +15,19 @@ export async function selectOption(promptText: string, options: Record<string, a
         console.log(`${index + 1}. ${option.name || key}`);
     });
 
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
     return new Promise((resolve) => {
         rl.question(`\nSelect an option (1-${optionsList.length}): `, (answer) => {
             rl.close();
-            const selectedIndex = parseInt(answer) - 1;
+            const selectedIndex = parseInt(answer.trim()) - 1;
             if (selectedIndex >= 0 && selectedIndex < optionsList.length) {
                 resolve(optionsList[selectedIndex]);
             } else {
-                console.log('Invalid selection. Using default.');
+                console.log("Invalid selection. Using default.");
                 resolve(null);
             }
         });
@@ -48,37 +48,53 @@ export async function askQuestion(questionText: string): Promise<boolean> {
     return new Promise((resolve) => {
         rl.question(`\n${questionText} (Y/N): `, (answer) => {
             rl.close();
-            const isYes = answer.trim().toLowerCase() === 'y';
-            resolve(isYes);
+            resolve(answer.trim().toLowerCase() === "y");
         });
     });
 }
 
 /**
- * Prompts the user for a text input
+ * Prompts the user for text input.
+ * Handles both typed single-line and multi-line paste.
+ * As soon as Enter is pressed once (or paste finishes), it immediately submits.
  * @param promptText - The prompt message to display
  * @returns - The string entered by the user
  */
 export async function askTextInput(promptText: string): Promise<string> {
     const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
+        terminal: true
     });
 
-    console.log(`\n${promptText} (Press Enter on an empty line to submit):`);
+    console.log(`\n${promptText} (Paste or type, press Enter once to submit):`);
+    process.stdout.write("> ");
 
     return new Promise((resolve) => {
         const lines: string[] = [];
-        rl.on('line', (line) => {
-            if (line.trim() === '') {
-                rl.close();
-            } else {
-                lines.push(line);
-            }
+        let timer: any = null;
+
+        const submit = () => {
+            if (timer) clearTimeout(timer);
+            rl.close();
+            resolve(lines.join("\n").trim());
+        };
+
+        rl.on("line", (line) => {
+            lines.push(line);
+            if (timer) clearTimeout(timer);
+
+            // Debounce by 80ms:
+            // Pasted multi-line text streams in with <10ms intervals.
+            // When Enter is pressed after typing, 80ms gives an instant response while capturing all input.
+            timer = setTimeout(submit, 80);
         });
 
-        rl.on('close', () => {
-            resolve(lines.join('\n').trim());
+        rl.on("SIGINT", () => {
+            rl.close();
+            process.exit(0);
         });
     });
 }
+
+

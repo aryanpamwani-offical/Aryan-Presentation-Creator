@@ -1,16 +1,19 @@
 import fs from 'fs';
 import path from 'path';
-import AuthWithGoogle from '../Presentation/config/auth/google-oauth.js';
+// Google Drive integration commented out in favor of Cloudflare R2
+// import AuthWithGoogle from '../Presentation/config/auth/google-oauth.js';
+// import { getLogoFromDrive } from '../Presentation/config/drive/google_drive.js';
 import { resizeAndSaveImage } from '../Presentation/utils/image_helper.js';
-import { getLogoFromDrive } from '../Presentation/config/drive/google_drive.js';
+import { getLogoFromCloudflare } from '../Presentation/config/cloudflare/r2.js';
 
 const LOCAL_LOGOS_DIR = path.resolve(process.cwd(), 'Presentation', 'media', 'images', 'logos');
 const TEMP_DIR = path.join(LOCAL_LOGOS_DIR, 'temp_storage');
 
 async function main() {
   try {
-    console.log('🔐 Authenticating with Google...');
-    const auth = await AuthWithGoogle();
+    // Google Drive auth commented out in favor of Cloudflare R2
+    // console.log('🔐 Authenticating with Google...');
+    // const auth = await AuthWithGoogle();
 
     if (!fs.existsSync(LOCAL_LOGOS_DIR)) {
       console.error('❌ Logos directory not found.');
@@ -25,26 +28,38 @@ async function main() {
       return;
     }
 
-    console.log(`🚀 Resizing and uploading ${logoFiles.length} logos to Google Drive...`);
+    console.log(`🚀 Resizing and uploading ${logoFiles.length} logos to Cloudflare R2...`);
     for (const filename of logoFiles) {
       if (filename === 'no-image.png') continue; // Skip generic placeholder
       
       const localPath = path.join(LOCAL_LOGOS_DIR, filename);
       console.log(`\nProcessing: ${filename}...`);
 
-      // Check if it already exists on Drive
+      // Check if it already exists on Cloudflare R2
+      const existingUrl = await getLogoFromCloudflare(filename);
+      if (existingUrl) {
+        console.log(`🎯 Logo already exists in Cloudflare R2: ${filename}. Skipping.`);
+        continue;
+      }
+
+      /* Google Drive existence check commented out:
       const existingUrl = await getLogoFromDrive(auth, filename);
       if (existingUrl) {
         console.log(`🎯 Logo already exists in Drive: ${filename}. Skipping.`);
         continue;
       }
+      */
 
       // Resize locally first
       const resizedPath = await resizeAndSaveImage(localPath, TEMP_DIR, 'Title');
       if (resizedPath) {
-        // Upload to Drive logo cache folder
+        // Upload to Cloudflare R2 logo cache
+        const newUrl = await getLogoFromCloudflare(filename, resizedPath);
+        console.log(`✅ Uploaded to Cloudflare R2 and cached: ${filename} -> ${newUrl}`);
+
+        /* Google Drive logo upload commented out:
         const newUrl = await getLogoFromDrive(auth, filename, resizedPath);
-        console.log(`✅ Uploaded and cached: ${filename} -> ${newUrl}`);
+        */
 
         // Cleanup temporary resized file
         if (fs.existsSync(resizedPath)) {

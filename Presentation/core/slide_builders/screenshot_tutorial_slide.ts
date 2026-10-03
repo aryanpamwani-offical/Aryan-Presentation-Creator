@@ -1,11 +1,10 @@
-
 import {
-    elementSelect,
     selectTextStyle,
-    translateX_and_translateY,
-    updateParagraphStyle
+    updateParagraphStyle,
+    unescapeText,
+    calculateTitleLayout
 } from "../../utils/text_utils.js";
-import { slideTypes, THEME_COLORS } from "../../constants/theme/index.js";
+import { THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     const requests = [];
@@ -22,24 +21,16 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     }
 
     // Use description if provided, fallback to caption
-    const finalCaption = description || caption;
+    const rawCaption = description || caption || "";
+    const finalCaption = unescapeText(rawCaption).trim();
+    const resolvedCodeTitle = unescapeText(slideData.codeTitle || slideData.CodeTitle || "").trim();
 
-    // 1. Text Config (Heading)
-    const containerConfig = slideTypes["screenshot_tutorial"].layout.container;
-
-    // --- Heading (Top-left) ---
-    const titleSizeData = elementSelect("title", title)[0];
-    const titleWidth = titleSizeData.size.width.magnitude;
-    const titleHeight = titleSizeData.size.height.magnitude;
-
-    const titleTransform = translateX_and_translateY(
-        containerConfig,
-        {
-            elementWidth: titleWidth,
-            elementHeight: titleHeight,
-            totalContentHeight: titleHeight
-        }
-    );
+    // --- 1. TITLE (Top-left, matching solved template) ---
+    const cleanTitle = unescapeText(title || "").trim();
+    const titleStartX = 60;
+    const titleStartY = 45;
+    const titleWidth = 600;
+    const { height: titleHeight, isMultiLine: isMultiLineTitle } = calculateTitleLayout(cleanTitle, titleWidth, 42);
 
     requests.push({
         createShape: {
@@ -47,8 +38,8 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
             shapeType: "TEXT_BOX",
             elementProperties: {
                 pageObjectId: slideId,
-                size: titleSizeData.size,
-                transform: titleTransform,
+                size: { width: { magnitude: titleWidth, unit: "PT" }, height: { magnitude: titleHeight, unit: "PT" } },
+                transform: { scaleX: 1, scaleY: 1, translateX: titleStartX, translateY: titleStartY, unit: "PT" },
             },
         },
     });
@@ -56,7 +47,7 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     requests.push({
         insertText: {
             objectId: slideElements.title,
-            text: title,
+            text: cleanTitle,
             insertionIndex: 0,
         },
     });
@@ -64,84 +55,25 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
     requests.push(selectTextStyle("title", slideElements.title));
     requests.push(updateParagraphStyle(slideElements.title, "START"));
 
+    // --- 2. LAYOUT GEOMETRY & SPACING ---
+    // Generous gap below title matching solved template
+    const gapBelowTitle = isMultiLineTitle ? 24 : 34;
+    const contentStartY = titleStartY + titleHeight + gapBelowTitle;
 
-    // --- 2-COLUMN LAYOUT CONTENT ---
+    const leftColX = 60;
+    const leftColWidth = 225;
+    const colGap = 25;
+    const rightColX = leftColX + leftColWidth + colGap; // 310
+    const rightColWidth = 360; // 360pt hero card width
+    const imageHeight = 210;   // 210pt hero card height
 
-    // Layout Constants
-    const titleWordCount = title ? title.trim().split(/\s+/).filter(Boolean).length : 0;
-    const baseGap = 20;
-    const gapBelowTitle = titleWordCount > 2 ? baseGap + 25 : baseGap; // Add 25pt extra space for 3+ word titles
-    const marginX = 50;
-    const startY = titleTransform.translateY + titleHeight + gapBelowTitle; // Start below title with adjusted gap
-    const contentHeight = 405 - startY - 20; // Remaining height (approx)
-    const slideWidth = 720;
-    const gap = 30;
+    let currentTextY = contentStartY;
 
-    // Calculate Column Widths
-    // Image takes ~60%, Text takes ~40%? Or 50/50?
-    // Let's go with Image on Right (larger) or Centered if text is small.
-    // User requested "aligned in the same line". Side-by-side.
-
-    const leftColWidth = 250;
-    const rightColWidth = 380; // Total 630 + gap + margins
-
-    const leftColX = marginX;
-    const rightColX = marginX + leftColWidth + gap;
-
-
-    // --- RIGHT COLUMN: CODE IMAGE ---
-    const imageElementId = slideElements.image || slideElements.title + "_image";
-    // Reduce image height when title has 3+ words to accommodate spacing
-    const baseImageHeight = 250;
-    const imageHeight = titleWordCount > 2 ? baseImageHeight - 25 : baseImageHeight; // Reduce image height for 3+ word titles
-
-    const imageTransform = {
-        scaleX: 1,
-        scaleY: 1,
-        translateX: rightColX,
-        translateY: startY,
-        unit: "PT"
-    };
-
-    if (finalImageUrl) {
-        requests.push({
-            createImage: {
-                objectId: imageElementId,
-                url: finalImageUrl,
-                elementProperties: {
-                    pageObjectId: slideId,
-                    size: { width: { magnitude: rightColWidth, unit: "PT" }, height: { magnitude: imageHeight, unit: "PT" } },
-                    transform: imageTransform,
-                },
-            },
-        });
-    } else {
-        // Fallback Shape
-        requests.push({
-            createShape: {
-                objectId: imageElementId,
-                shapeType: "ROUND_RECTANGLE",
-                elementProperties: {
-                    pageObjectId: slideId,
-                    size: { width: { magnitude: rightColWidth, unit: "PT" }, height: { magnitude: imageHeight, unit: "PT" } },
-                    transform: imageTransform,
-                },
-            },
-        });
-        // (Skipping styling details for brevity, assumed handled or not needed if URL exists usually)
-    }
-
-    // --- LEFT COLUMN: CODE TITLE & DESCRIPTION ---
-    // We stack them vertically in the left column
-
-    let currentTextY = startY;
-
-    // 1. Code Title (Subheading)
-    if (codeTitle) {
+    // --- LEFT COLUMN: 1. Code Title (Subheading) ---
+    if (resolvedCodeTitle) {
         const codeTitleId = slideElements.title + "_sub";
-        const codeTitleHeight = 30;
-        const codeTitleWordCount = codeTitle ? codeTitle.trim().split(/\s+/).filter(Boolean).length : 0;
-        const codeTitleBottomSpace = codeTitleWordCount > 2 ? 15 : 0; // Add 15pt extra space for 3+ word codeTitle
+        const isMultiLineCodeTitle = resolvedCodeTitle.length > 18 || resolvedCodeTitle.includes('\n');
+        const codeTitleHeight = isMultiLineCodeTitle ? 48 : 28;
 
         requests.push({
             createShape: {
@@ -164,13 +96,12 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
         requests.push({
             insertText: {
                 objectId: codeTitleId,
-                text: codeTitle,
+                text: resolvedCodeTitle,
                 insertionIndex: 0,
             },
         });
 
-        // Style Code Title - Bold, Accent Color?
-        requests.push(selectTextStyle("subHeading", codeTitleId)); // Use h2 style or similar
+        requests.push(selectTextStyle("subHeading", codeTitleId));
         requests.push(updateParagraphStyle(codeTitleId, "START"));
         requests.push({
             updateTextStyle: {
@@ -178,19 +109,21 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
                 style: {
                     fontSize: { magnitude: 18, unit: "PT" },
                     bold: true,
-                    foregroundColor: { opaqueColor: { rgbColor: THEME_COLORS.text } }
+                    foregroundColor: { opaqueColor: { rgbColor: THEME_COLORS.accent } } // Blue accent color
                 },
                 fields: "fontSize,bold,foregroundColor"
             }
         });
 
-        currentTextY += codeTitleHeight + 10 + codeTitleBottomSpace;
+        // Tight natural gap between heading and description (matching solved template)
+        const gapCodeTitleToDesc = 14;
+        currentTextY += codeTitleHeight + gapCodeTitleToDesc;
     }
 
-    // 2. Description/Caption
+    // --- LEFT COLUMN: 2. Description / Caption ---
     if (finalCaption) {
         const captionElementId = slideElements.caption || slideElements.title + "_caption";
-        const captionHeight = 150; // Allow more space
+        const captionHeight = 150;
 
         requests.push({
             createShape: {
@@ -224,11 +157,49 @@ const buildScreenshotTutorialSlide = (slideId, slideElements, slideData) => {
             updateTextStyle: {
                 objectId: captionElementId,
                 style: {
-                    fontSize: { magnitude: 12, unit: "PT" },
+                    fontSize: { magnitude: 13, unit: "PT" },
                     foregroundColor: { opaqueColor: { rgbColor: THEME_COLORS.secondaryText } }
                 },
                 fields: "fontSize,foregroundColor"
             }
+        });
+    }
+
+    // --- RIGHT COLUMN: CODE IMAGE ---
+    // The image starts from the top of codeTitle (contentStartY)
+    const imageElementId = slideElements.image || slideElements.title + "_image";
+    const imageY = contentStartY;
+    const imageTransform = {
+        scaleX: 1,
+        scaleY: 1,
+        translateX: rightColX,
+        translateY: imageY,
+        unit: "PT"
+    };
+
+    if (finalImageUrl) {
+        requests.push({
+            createImage: {
+                objectId: imageElementId,
+                url: finalImageUrl,
+                elementProperties: {
+                    pageObjectId: slideId,
+                    size: { width: { magnitude: rightColWidth, unit: "PT" }, height: { magnitude: imageHeight, unit: "PT" } },
+                    transform: imageTransform,
+                },
+            },
+        });
+    } else {
+        requests.push({
+            createShape: {
+                objectId: imageElementId,
+                shapeType: "ROUND_RECTANGLE",
+                elementProperties: {
+                    pageObjectId: slideId,
+                    size: { width: { magnitude: rightColWidth, unit: "PT" }, height: { magnitude: imageHeight, unit: "PT" } },
+                    transform: imageTransform,
+                },
+            },
         });
     }
 

@@ -43,8 +43,9 @@ const createSlides = async (defaultSlideId, auth = null) => {
 
     console.log(`View here: https://docs.google.com/presentation/d/${presentationId}/edit`);
     return response;
-  } catch (error) {
-    console.error("Error:", error.message);
+  } catch (error: any) {
+    console.error("Error creating slides:", error.message || error);
+    throw error;
   }
 }
 

@@ -1,5 +1,5 @@
 import { THEME_COLORS, FONTS, FONT_SIZES, FONT_WEIGHTS, PADDING } from "../constants/theme/index.js";
-import { estimateTextHeight, widthCalculator } from "../config/dimension_calculator/index.js";
+import { estimateTextHeight, widthCalculator, calculateTitleLayout, getOptimalTitleFontSize } from "../config/dimension_calculator/index.js";
 
 const SLIDE_WIDTH = 720;
 const SLIDE_HEIGHT = 405;
@@ -161,11 +161,31 @@ const translateX_and_translateY = (layoutProps, metrics) => {
   return { scaleX: 1, scaleY: 1, translateX: xPt, translateY: startY + currentOffsetY, unit: 'PT' };
 };
 
+/**
+ * Normalizes any string containing escaped newlines (e.g. \n, \\n, \\\n, \\\\n, \r\n)
+ * into clean, real ASCII line feeds without leaving behind stray backslashes.
+ */
+const unescapeText = (str: any): string => {
+  if (!str || typeof str !== 'string') return '';
+  let text = str;
+  text = text.replace(/\\+r\\+n/gi, '\n');
+  text = text.replace(/\\+n/gi, '\n');
+  text = text.replace(/\\+r/gi, '\n');
+  text = text.replace(/\r\n/g, '\n');
+  text = text.replace(/\r/g, '\n');
+  text = text.replace(/\\+\n/g, '\n');
+  text = text.replace(/\n\\+/g, '\n');
+  return text;
+};
+
 export {
   textFields,
   selectTextStyle,
   elementSelect,
   translateX_and_translateY,
   bullet_disc,
-  updateParagraphStyle
+  updateParagraphStyle,
+  unescapeText,
+  calculateTitleLayout,
+  getOptimalTitleFontSize
 };

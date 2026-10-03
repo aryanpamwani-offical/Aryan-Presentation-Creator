@@ -1,9 +1,11 @@
 import {
     updateParagraphStyle,
-    selectTextStyle
+    selectTextStyle,
+    unescapeText,
+    calculateTitleLayout,
+    getOptimalTitleFontSize
 } from "../../utils/text_utils.js";
 
-import { estimateTextHeight } from "../../config/dimension_calculator/index.js";
 import { compressImageAndUpload as compress_image_upload } from "../../utils/image_helper.js";
 import { updateSlideImage } from "./slideData.js";
 import { THEME_COLORS } from "../../constants/theme/index.js";
@@ -13,7 +15,16 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
 
     // 1. Setup Data
     const { title, subtitle, localImagePath, image, imageUrl } = slideData;
-    const titleText = title || "Untitled Presentation";
+    const titleText = unescapeText(title || "Untitled Presentation").trim();
+    const cleanSubtitle = subtitle ? unescapeText(subtitle).trim() : "";
+
+    // Calculate dynamic title dimensions and vertical positioning
+    // Compute optimal font size (e.g. 38pt instead of 42pt if long words would break mid-word)
+    const titleMaxWidth = 310;
+    const titleFontSize = getOptimalTitleFontSize(titleText, titleMaxWidth, 42, 30);
+    const { height: titleEstHeight, lineCount: titleLineCount } = calculateTitleLayout(titleText, titleMaxWidth, titleFontSize);
+    const textStartX = 70;
+    const textStartY = titleLineCount >= 3 ? Math.max(60, 110 - (titleLineCount - 2) * 22) : (titleLineCount === 2 ? 105 : 115);
 
     // ── Shape 1: Large Accent Shape (Top Right) ──────────────────────────────
     const shape1Id = titleElements.title + "_shape1";
@@ -56,6 +67,9 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
 
     // ── Shape 2: Bold Accent Stripe (Left) ───────────────────────────────────
     const shape2Id = titleElements.title + "_shape2";
+    const stripeY = Math.min(115, textStartY);
+    const stripeHeight = Math.max(150, titleEstHeight + (cleanSubtitle ? 85 : 30));
+
     requests.push({
         createShape: {
             objectId: shape2Id,
@@ -64,13 +78,13 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
                 pageObjectId: titlePageId,
                 size: {
                     width:  { magnitude: 15,  unit: "PT" },
-                    height: { magnitude: 150, unit: "PT" }
+                    height: { magnitude: stripeHeight, unit: "PT" }
                 },
                 transform: {
                     scaleX: 1,
                     scaleY: 1,
                     translateX: 40,
-                    translateY: 120,
+                    translateY: stripeY,
                     unit: "PT"
                 },
             },
@@ -92,11 +106,14 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
         }
     });
 
-    // ── Image: Compress / Upload ──────────────────────────────────────────────
+    // ── Image: Cloudflare R2 Logo Resolution ──────────────────────────────────
     let finalImageUrl = imageUrl || image;
+    const isGoogleDriveUrl = typeof finalImageUrl === 'string' && finalImageUrl.includes('drive.google.com');
 
-    if (!finalImageUrl && localImagePath) {
-        const result = await compress_image_upload(localImagePath, 'Title', 'logos');
+    // If imageUrl is missing or points to old Google Drive URL, resolve via Cloudflare R2
+    if ((!finalImageUrl || isGoogleDriveUrl) && localImagePath) {
+        const cleanLogoName = localImagePath.replace(/^\/+/, '');
+        const result = await compress_image_upload(cleanLogoName, 'Title', 'logos');
         if (result && result.ImageUrl) {
             finalImageUrl = result.ImageUrl;
             if (slideIndex !== undefined) {
@@ -105,7 +122,7 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
         }
     }
 
-    if (!finalImageUrl) {
+    if (!finalImageUrl || (typeof finalImageUrl === 'string' && finalImageUrl.includes('drive.google.com'))) {
         const result = await compress_image_upload('no-image.png', 'Title', 'logos');
         if (result && result.ImageUrl) {
             finalImageUrl = result.ImageUrl;
@@ -117,10 +134,10 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
 
     // ── Image with Shadow Effect ──────────────────────────────────────────────
     if (finalImageUrl) {
-        const imgWidth  = 320;
-        const imgHeight = 240;
-        const imgX      = 360;
-        const imgY      = 82;
+        const imgWidth  = 300;
+        const imgHeight = 225;
+        const imgX      = 380;
+        const imgY      = 90;
 
         // Shadow shape (behind image)
         const shadowId = titleElements.image + "_shadow";
@@ -185,11 +202,6 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
     }
 
     // ── Title Text ────────────────────────────────────────────────────────────
-    const titleMaxWidth  = 300;
-    const titleEstHeight = estimateTextHeight(titleText, 48, titleMaxWidth);
-    const textStartX     = 70;
-    const textStartY     = 110;
-
     requests.push({
         createShape: {
             objectId: titleElements.title,
@@ -221,13 +233,24 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
 
     // ✅ Style pulled from text_utils textFields.titleSlideTitle
     requests.push(selectTextStyle('title', titleElements.title));
+    if (titleFontSize !== 42) {
+        requests.push({
+            updateTextStyle: {
+                objectId: titleElements.title,
+                style: {
+                    fontSize: { magnitude: titleFontSize, unit: 'PT' }
+                },
+                fields: 'fontSize'
+            }
+        });
+    }
     requests.push(updateParagraphStyle(titleElements.title, "START"));
 
     // ── Subtitle Text ─────────────────────────────────────────────────────────
-    if (subtitle) {
+    if (cleanSubtitle) {
         const subtitleId = titleElements.title + "_sub";
-        const subHeight  = 80;
-        const subY       = textStartY + titleEstHeight + 35;
+        const subHeight  = 70;
+        const subY       = textStartY + titleEstHeight + 18;
 
         requests.push({
             createShape: {
@@ -253,7 +276,7 @@ const buildTitleSlide = async (titlePageId, titleElements, slideData, slideIndex
         requests.push({
             insertText: {
                 objectId: subtitleId,
-                text: subtitle,
+                text: cleanSubtitle,
                 insertionIndex: 0,
             },
         });

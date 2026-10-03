@@ -1,63 +1,46 @@
 
 import {
-    elementSelect,
     selectTextStyle,
-    translateX_and_translateY,
-    updateParagraphStyle
+    updateParagraphStyle,
+    unescapeText,
+    calculateTitleLayout
 } from "../../utils/text_utils.js";
-import { slideTypes, THEME_COLORS } from "../../constants/theme/index.js";
+import { THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
     const requests = [];
     const { title, bullets, moduleLabel } = slideData;
 
-    // 1. Text Config
-    const containerConfig = slideTypes["module_intro"].layout.container;
+    const cleanLabel = unescapeText(moduleLabel || "").trim();
+    // Ensure title is specific to the module theme (replace generic "Module 1 Intro" or "Module One Overview")
+    let resolvedTitle = unescapeText(title || "").trim();
+    if (/^module\s+(one|two|three|\d+)\s*(intro|overview)?$/i.test(resolvedTitle) || !resolvedTitle) {
+        const extracted = cleanLabel ? cleanLabel.replace(/^module\s+\d+:\s*/i, '').trim() : '';
+        if (extracted) {
+            resolvedTitle = extracted;
+        }
+    }
 
-    // --- Title ---
-    const titleSizeData = elementSelect("title", title)[0];
-    const titleWidth = titleSizeData.size.width.magnitude;
-    const titleHeight = titleSizeData.size.height.magnitude;
+    const startX = 60;
+    const contentWidth = 600;
 
-    // Calculate Position (Top-left aligned, with wide top margin)
-    // For module_intro, it acts as a section header. 
-    // "Wide top margin above title" -> We can use padding from slide_types, but let's manual position for now to be safe or use the existing utils.
-    // The existing utils `translateX_and_translateY` seems to center things or align based on config.
-    // slideTypes["module_intro"] has alignItems: top_align, justifyContent: justify_center. 
-    // But the spec says "Left-aligned block". "Wide top margin".
+    // Dynamically calculate title lines and height for 42pt Poppins font
+    const { height: titleHeight, isMultiLine: isMultiLineTitle } = calculateTitleLayout(resolvedTitle, contentWidth, 42);
 
-    // Let's rely on the container config for now, assuming it places it correctly, or adjust if needed.
-    // Actually, `translateX_and_translateY` might not handle "Left-aligned block" perfectly if `justifyContent` is `justify_center`.
-    // The spec says "Left-aligned block" but `slide_types.js` says `justifyContent: justify_center`. 
-    // I should probably trust the spec over the existing `slide_types.js` if they conflict, but `slide_types.js` was provided by the user (or exists).
-    // Let's stick to the existing `slide_types.js` config for now, but user requirement says "Left-aligned block".
-    // "justify_center" in `slide_types.js` likely centers the block horizontally. 
-    // If the spec says "Left-aligned block", maybe it means text alignment? 
-    // "Single-column text stack on dark background." "Acts as a section header slide."
+    // Calculate dimensions and vertical centering with equal 16pt gaps
+    const labelHeight = moduleLabel ? 24 : 0;
+    const gapLabelTitle = moduleLabel ? 16 : 0;
+    const gapTitleBullets = 16; // Equal 16pt gap after title ends
+    const bulletCount = bullets?.length || 0;
+    const bulletsEstimatedHeight = Math.max(90, bulletCount * 30);
 
-    // Let's assume the existing `slide_types.js` is correct for the container alignment (maybe centered container, left aligned text?)
-    // But "Left-aligned block" usually means the block itself is left aligned or the text inside is.
-    // Let's use the provided `slide_types.js` config.
+    const totalStackHeight = labelHeight + gapLabelTitle + titleHeight + gapTitleBullets + bulletsEstimatedHeight;
+    const startY = Math.max(50, Math.round((405 - totalStackHeight) / 2));
+    let currentY = startY;
 
-    // --- Module Label (if exists) ---
-    let moduleLabelHeight = 0;
+    // 1. Module Label (if present)
     if (moduleLabel) {
-        const labelSizeData = elementSelect("moduleLabel", moduleLabel)[0];
-        const labelWidth = labelSizeData.size.width.magnitude;
-        moduleLabelHeight = labelSizeData.size.height.magnitude;
-
-        const labelTransform = translateX_and_translateY(
-            containerConfig,
-            {
-                elementWidth: labelWidth,
-                elementHeight: moduleLabelHeight,
-                totalContentHeight: moduleLabelHeight + titleHeight + (bullets ? 200 : 0),
-            }
-        );
-
-        // Move label down to top position
-        labelTransform.translateY += 20;
-
+        const labelHeight = 24;
         const labelElementId = slideElements.title + "_label";
 
         requests.push({
@@ -66,8 +49,8 @@ const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
                 shapeType: "TEXT_BOX",
                 elementProperties: {
                     pageObjectId: slideId,
-                    size: labelSizeData.size,
-                    transform: labelTransform,
+                    size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: labelHeight, unit: "PT" } },
+                    transform: { scaleX: 1, scaleY: 1, translateX: startX, translateY: currentY, unit: "PT" },
                 },
             },
         });
@@ -83,7 +66,6 @@ const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
         requests.push(selectTextStyle("moduleLabel", labelElementId));
         requests.push(updateParagraphStyle(labelElementId, "START"));
 
-        // Apply accent color to label
         requests.push({
             updateTextStyle: {
                 objectId: labelElementId,
@@ -96,87 +78,41 @@ const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
                 fields: "foregroundColor"
             }
         });
+
+        currentY += labelHeight + gapLabelTitle; // Equal 16pt gap between label & title
     }
 
-    const titleTransform = translateX_and_translateY(
-        containerConfig,
-        {
-            elementWidth: titleWidth,
-            elementHeight: titleHeight,
-            totalContentHeight: titleHeight + (bullets ? 200 : 0), // Estimate
-        }
-    );
-
-    // Move title down (more if label exists)
-    titleTransform.translateY += moduleLabel ? (20 + moduleLabelHeight + 10) : 40;
-
-    // Create Title Shape
+    // 2. Title (42pt font)
     requests.push({
         createShape: {
             objectId: slideElements.title,
             shapeType: "TEXT_BOX",
             elementProperties: {
                 pageObjectId: slideId,
-                size: titleSizeData.size,
-                transform: titleTransform,
+                size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: titleHeight, unit: "PT" } },
+                transform: { scaleX: 1, scaleY: 1, translateX: startX, translateY: currentY, unit: "PT" },
             },
         },
     });
 
-    // Insert Title Text
     requests.push({
         insertText: {
             objectId: slideElements.title,
-            text: title,
+            text: resolvedTitle,
             insertionIndex: 0,
         },
     });
 
-    // Format Title
     requests.push(selectTextStyle("title", slideElements.title));
-    requests.push(updateParagraphStyle(slideElements.title, "START")); // Left aligned text
+    requests.push(updateParagraphStyle(slideElements.title, "START"));
 
-    // --- Bullets ---
+    currentY += titleHeight + gapTitleBullets; // Equal 16pt gap below title
+
+    // 3. Bullets
     if (bullets && bullets.length > 0) {
-        // Position bullets below title
-        const bulletText = bullets.join("\n");
-        const bulletSizeData = elementSelect("body", bulletText)[0]; // Use body style for size est
-
-        // We need to position this below the title. 
-        // The current `translateX_and_translateY` util is a bit limited for multi-element vertical stacking if it only takes 1 element dimensions.
-        // It seems to center the *group* if we pass totalContentHeight.
-        // But here we are creating separate shapes.
-        // A better approach might be to put them in one text box?
-        // "Strong hierarchy: title ≫ bullets."
-        // "No paragraphs—only short learning objectives."
-        // "Bullets spaced evenly with generous line height."
-
-        // If we use one text box, we can control internal formatting. 
-        // If we use two shapes, we need to calculate positions manually relative to each other.
-        // `translateX_and_translateY` returns a transform. We can offset the Y for the second element.
-
-        // Let's use two shapes for flexibility.
-
-        // Re-calculate title transform to account for total height?
-        // Actually, if `top_align` is used, it might just start from top + padding.
-        // Let's look at `slide_types.js`: `module_intro` has `alignItems: top_align`.
-        // `alignItems` usually affects Y axis in this context (flex-direction column implied?).
-
-        // Let's simply place the bullets.
-
-        // ID for bullets? We need to generate one? 
-        // The `slideElements` passed in should ideally contain it. I will assume `slideElements.bullets` exists or I need to handle it.
-        // For now, I will assume `slideElements.body` or similar.
-
+        const bulletText = bullets.map(b => unescapeText(b).trim()).join("\n");
         const bulletElementId = slideElements.body || slideElements.title + "_bullets";
-
-        const bulletTransform = {
-            scaleX: 1,
-            scaleY: 1,
-            translateX: titleTransform.translateX, // Align with title
-            translateY: titleTransform.translateY + titleHeight + 15, // Reduced gap from 50 to 15
-            unit: "PT"
-        };
+        const bulletHeight = Math.max(150, bullets.length * 35);
 
         requests.push({
             createShape: {
@@ -184,8 +120,8 @@ const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
                 shapeType: "TEXT_BOX",
                 elementProperties: {
                     pageObjectId: slideId,
-                    size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 300, unit: "PT" } }, // Fixed width for bullets? 
-                    transform: bulletTransform,
+                    size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: bulletHeight, unit: "PT" } },
+                    transform: { scaleX: 1, scaleY: 1, translateX: startX, translateY: currentY, unit: "PT" },
                 },
             },
         });
@@ -198,10 +134,9 @@ const buildModuleIntroSlide = (slideId, slideElements, slideData) => {
             },
         });
 
-        requests.push(selectTextStyle("body", bulletElementId)); // Use body style
+        requests.push(selectTextStyle("body", bulletElementId));
         requests.push(updateParagraphStyle(bulletElementId, "START"));
 
-        // Bullet points styling
         requests.push({
             createParagraphBullets: {
                 objectId: bulletElementId,

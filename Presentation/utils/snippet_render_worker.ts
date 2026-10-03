@@ -136,6 +136,44 @@ function parseCssToMap(cssString: string): Record<string, Record<string, string>
     return map;
 }
 
+function splitHighlightedCodeIntoLines(highlightedHtml: string): string[] {
+    const lines: string[] = [];
+    const openSpans: string[] = [];
+    
+    const tokenRegex = /(<span[^>]*>|<\/span>|\r?\n|[^\r\n<]+|<)/g;
+    let currentLine = '';
+    let match: RegExpExecArray | null;
+
+    while ((match = tokenRegex.exec(highlightedHtml)) !== null) {
+        const token = match[0];
+
+        if (token === '\n' || token === '\r\n') {
+            let closedLine = currentLine;
+            for (let i = openSpans.length - 1; i >= 0; i--) {
+                closedLine += '</span>';
+            }
+            lines.push(closedLine);
+            currentLine = openSpans.join('');
+        } else if (token.startsWith('<span')) {
+            openSpans.push(token);
+            currentLine += token;
+        } else if (token === '</span>') {
+            openSpans.pop();
+            currentLine += token;
+        } else {
+            currentLine += token;
+        }
+    }
+
+    let closedLine = currentLine;
+    for (let i = openSpans.length - 1; i >= 0; i--) {
+        closedLine += '</span>';
+    }
+    lines.push(closedLine);
+
+    return lines;
+}
+
 function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, string>>): SatoriNode | null {
     const root = parse(htmlString.trim(), {
         blockTextElements: { script: true, noscript: true, style: true }
@@ -147,7 +185,8 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
         }
         if (node.nodeType === 1) {
             const element = node as HTMLElement;
-            let type = element.tagName.toLowerCase();
+            const originalType = element.tagName.toLowerCase();
+            let type = originalType;
             const props: Record<string, unknown> = {};
             const isCodeElement = type === 'pre' || type === 'code' || element.attributes.class?.includes('code-line');
             const nextInCode = inCode || isCodeElement;
@@ -179,7 +218,7 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
             // Apply styles from CSS Map
             const style = (props.style || {}) as Record<string, string>;
             Object.keys(cssMap).forEach(selector => {
-                if (selector === type) {
+                if (selector === originalType || selector === type) {
                     Object.assign(style, cssMap[selector]);
                 } else if (selector.startsWith('.')) {
                     const classes = selector.slice(1).split('.');
@@ -213,6 +252,7 @@ function htmlToSatori(htmlString: string, cssMap: Record<string, Record<string, 
 
     const container = root.querySelector('.snippet-container');
     if (container) return parseNode(container) as SatoriNode;
+    console.error('⚠️ Warning: .snippet-container not found in DOM tree. Falling back to root child node.');
     for (const child of root.childNodes) {
         if (child.nodeType === 1) return parseNode(child) as SatoriNode;
     }
@@ -246,7 +286,7 @@ async function renderSnippet(snippet: CodeSlide, options: RenderOptions = {}): P
     };
 
     const language = detectLanguage(snippet.codeblock, snippet.language);
-    const title = snippet.title || '';
+    const title = snippet.title || snippet.codeTitle || '';
     const validLanguage = hljs.getLanguage(language);
 
     let highlightedCode;
@@ -262,22 +302,17 @@ async function renderSnippet(snippet: CodeSlide, options: RenderOptions = {}): P
         ? `background-image: ${GRADIENTS[themeKey] || GRADIENTS[config.defaultTheme]}; padding: 48px; border-radius: 12px; display: flex;`
         : `background: transparent; padding: 4px; display: flex;`;
 
-    const codeLines = highlightedCode.split('\n').map(line =>
+    const lines = splitHighlightedCodeIntoLines(highlightedCode);
+    const codeLines = lines.map(line =>
         `<div class="code-line" style="display: flex; flex-direction: row; align-items: center; min-height: 20px; white-space: pre; color: #e5e7eb;">${line || ' '}</div>`
     ).join('');
 
-    htmlContent = htmlContent.replace('class="snippet-container {{CONTAINER_CLASS}}', `class="snippet-container" style="${containerStyle}"`);
+    htmlContent = htmlContent.replace('{{CONTAINER_CLASS}}', '');
+    htmlContent = htmlContent.replace('{{CONTAINER_STYLE}}', containerStyle);
     htmlContent = htmlContent.replace(/\{\{THEME\}\}/g, themeKey);
     htmlContent = htmlContent.replace(/\{\{LANGUAGE\}\}/g, language);
     htmlContent = htmlContent.replace(/\{\{CODE\}\}/g, codeLines);
-
-    if (title) {
-        htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}/g, '');
-        htmlContent = htmlContent.replace(/\{\{\/if\}\}/g, '');
-        htmlContent = htmlContent.replace(/\{\{TITLE\}\}/g, title);
-    } else {
-        htmlContent = htmlContent.replace(/\{\{#if TITLE\}\}[\s\S]*?\{\{\/if\}\}/g, '');
-    }
+    htmlContent = htmlContent.replace(/\{\{TITLE\}\}/g, title);
 
     const vnode = htmlToSatori(htmlContent, cssMap);
     const fontBuffer = getCachedFont();
@@ -300,7 +335,9 @@ async function renderSnippet(snippet: CodeSlide, options: RenderOptions = {}): P
 
     const fileName = `slide-${snippet.slide_number}.png`;
     const outputPath = path.join(outputDir, fileName);
-    await Bun.write(outputPath, pngBuffer);
+    if (snippet.slide_number !== 0) {
+        await Bun.write(outputPath, pngBuffer);
+    }
 
     return outputPath;
 }

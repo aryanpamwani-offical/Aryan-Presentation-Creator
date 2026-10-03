@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import uploadImageToDrive, { getLogoFromDrive } from '../config/drive/google_drive.js';
-import AuthWithGoogle from '../config/auth/google-oauth.js';
+// Google Drive integration commented out in favor of Cloudflare R2
+// import uploadImageToDrive, { getLogoFromDrive } from '../config/drive/google_drive.js';
+// import AuthWithGoogle from '../config/auth/google-oauth.js';
+import { getLogoFromCloudflare, uploadSnippetToR2 } from '../config/cloudflare/r2.js';
 import { PADDING } from '../constants/theme/index.js';
 import { translateX_and_translateY } from './text_utils.js';
 
@@ -32,6 +34,7 @@ export const compressImage = async (inputPath, outputDir) => {
   }
 
   // Node.js fallback using sharp
+  // @ts-ignore
   const { default: sharp } = await import('sharp');
   const image = sharp(inputPath);
   const metadata = await image.metadata();
@@ -72,6 +75,7 @@ export const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code
   }
 
   // Node.js fallback using sharp
+  // @ts-ignore
   const { default: sharp } = await import('sharp');
   const image = sharp(inputPath).resize(width, height);
   const metadata = await image.metadata();
@@ -85,7 +89,7 @@ export const resizeAndSaveImage = async (inputPath, outputDir, slideType = 'Code
   return outputPath;
 };
 
-export const compressImageAndUpload = async (fileName, slideType, folderName) => {
+export const compressImageAndUpload = async (fileName, slideType = 'Title', folderName = 'logos') => {
   let compressedPath = null;
   try {
     const baseImageDir = path.resolve(process.cwd(), 'Presentation', 'media', 'images');
@@ -97,20 +101,29 @@ export const compressImageAndUpload = async (fileName, slideType, folderName) =>
       return null;
     }
 
-    const authClient = await AuthWithGoogle();
-
-    // Check Drive Cache if it's a logo
+    // ── 1. Check & Handle Logos (Cloudflare R2) ──────────────────────────────
     if (folderName === 'logos') {
-      const cachedUrl = await getLogoFromDrive(authClient, fileName);
+      const cleanName = path.basename(fileName);
+
+      // Check R2 cache first (zero latency)
+      const cachedUrl = await getLogoFromCloudflare(cleanName);
       if (cachedUrl) {
         return { ImageUrl: cachedUrl };
       }
-      
-      // If it doesn't exist, we resize it first locally
+
+      /* Google Drive logo caching commented out in favor of Cloudflare R2:
+      const authClient = await AuthWithGoogle();
+      const driveCachedUrl = await getLogoFromDrive(authClient, fileName);
+      if (driveCachedUrl) {
+        return { ImageUrl: driveCachedUrl };
+      }
+      */
+
+      // If not in cache, resize it locally to standard dimensions (IMAGE_CONFIG[slideType])
       compressedPath = await resizeAndSaveImage(imagePath, uploadDir, slideType);
       if (compressedPath) {
-        // Upload and save to logo cache
-        const newUrl = await getLogoFromDrive(authClient, fileName, compressedPath);
+        // Upload resized logo to Cloudflare R2 under logo/ folder
+        const newUrl = await getLogoFromCloudflare(cleanName, compressedPath);
         if (fs.existsSync(compressedPath)) {
           fs.unlinkSync(compressedPath);
         }
@@ -119,32 +132,24 @@ export const compressImageAndUpload = async (fileName, slideType, folderName) =>
       return null;
     }
 
+    // ── 2. Handle General Images (Diagrams, Tutorials, etc.) ──────────────────
     compressedPath = await resizeAndSaveImage(imagePath, uploadDir, slideType);
     if (!compressedPath) return null;
 
-    let topicName = 'General';
-    try {
-      const presentationJsonPath = path.resolve(process.cwd(), 'Presentation', 'media', 'json', 'presentation.json');
-      if (fs.existsSync(presentationJsonPath)) {
-        const rawData = fs.readFileSync(presentationJsonPath, 'utf8');
-        const slides = JSON.parse(rawData);
-        if (Array.isArray(slides)) {
-          const titleSlide = slides.find(s => s.type === 'title');
-          if (titleSlide && titleSlide.title) {
-            topicName = titleSlide.title;
-          }
-        }
-      }
-    } catch (_) {}
+    const r2Key = `images/${path.basename(fileName)}`;
+    const imageUrl = await uploadSnippetToR2(compressedPath, r2Key);
 
-    const imageUrl = await uploadImageToDrive(authClient, compressedPath, topicName);
+    /* Google Drive general image upload commented out in favor of Cloudflare R2:
+    const authClient = await AuthWithGoogle();
+    const driveImageUrl = await uploadImageToDrive(authClient, compressedPath, topicName);
+    */
 
     if (imageUrl && fs.existsSync(compressedPath)) {
       fs.unlinkSync(compressedPath);
     }
     return { ImageUrl: imageUrl };
-  } catch (error) {
-    console.error('Image Upload Error:', error.message);
+  } catch (error: any) {
+    console.error('Image Upload Error:', error.message || error);
     if (compressedPath && fs.existsSync(compressedPath)) {
       try { fs.unlinkSync(compressedPath); } catch (_) {}
     }

@@ -118,9 +118,12 @@ async function getUniqueTopicFolder(drive: any, baseTopic: string) {
   }
 }
 
+import { Readable } from 'stream';
+
 const uploadImageToDrive = async (auth, filePath, topicName = 'General') => {
   try {
     if (!existsSync(filePath)) return null;
+    const fileBuffer = readFileSync(filePath);
     const drive = google.drive({ version: 'v3', auth });
 
     // Resolve unique folder ID once per execution (shared promise across all concurrent uploads)
@@ -140,7 +143,7 @@ const uploadImageToDrive = async (auth, filePath, topicName = 'General') => {
         name: path.basename(filePath),
         parents: [folderId]
       },
-      media: { mimeType: 'image/png', body: createReadStream(filePath) },
+      media: { mimeType: 'image/png', body: Readable.from(fileBuffer) },
       fields: 'id, webContentLink',
     });
 
@@ -212,12 +215,13 @@ export const getLogoFromDrive = async (auth, filename, localFallbackPath = null)
     // If not found and fallback exists, upload it to the logo folder to cache it
     if (localFallbackPath && existsSync(localFallbackPath)) {
       console.log(`📤 Logo not found in Drive. Uploading fallback to cache: ${cleanName}`);
+      const fallbackBuffer = readFileSync(localFallbackPath);
       const file = await drive.files.create({
         requestBody: { 
           name: cleanName,
           parents: [logoFolderId]
         },
-        media: { mimeType: 'image/png', body: createReadStream(localFallbackPath) },
+        media: { mimeType: 'image/png', body: Readable.from(fallbackBuffer) },
         fields: 'id',
       });
 

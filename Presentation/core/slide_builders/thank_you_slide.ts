@@ -1,41 +1,31 @@
 
 import {
-    elementSelect,
     selectTextStyle,
-    translateX_and_translateY,
     updateParagraphStyle
 } from "../../utils/text_utils.js";
-import { slideTypes } from "../../constants/theme/index.js";
 
 const buildThankYouSlide = (thankYouPageId, thankYouElements) => {
     const requests = [];
     const thankYouText = "Thank You";
 
-    // 1. Calculate Size & Position
-    const thankYouSizeData = elementSelect("title", thankYouText)[0];
-    const thankYouTransform = translateX_and_translateY(
-        slideTypes["thank_you"].layout.container,
-        {
-            elementWidth: thankYouSizeData.size.width.magnitude,
-            elementHeight: thankYouSizeData.size.height.magnitude,
-            totalContentHeight: thankYouSizeData.size.height.magnitude,
-        }
-    );
+    // Centered Title: 600 wide, 80 high on 720x405 canvas
+    const boxWidth = 600;
+    const boxHeight = 80;
+    const x = (720 - boxWidth) / 2; // 60
+    const y = (405 - boxHeight) / 2; // 162.5
 
-    // 2. Create Shape
     requests.push({
         createShape: {
             objectId: thankYouElements.title,
             shapeType: "TEXT_BOX",
             elementProperties: {
                 pageObjectId: thankYouPageId,
-                size: thankYouSizeData.size,
-                transform: thankYouTransform,
+                size: { width: { magnitude: boxWidth, unit: "PT" }, height: { magnitude: boxHeight, unit: "PT" } },
+                transform: { scaleX: 1, scaleY: 1, translateX: x, translateY: y, unit: "PT" },
             },
         },
     });
 
-    // 3. Insert Text
     requests.push({
         insertText: {
             objectId: thankYouElements.title,
@@ -44,7 +34,6 @@ const buildThankYouSlide = (thankYouPageId, thankYouElements) => {
         },
     });
 
-    // 4. Apply Formatting
     requests.push(selectTextStyle("title", thankYouElements.title));
     requests.push(updateParagraphStyle(thankYouElements.title, "CENTER"));
 

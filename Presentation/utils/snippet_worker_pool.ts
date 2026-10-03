@@ -45,44 +45,45 @@ export async function renderWithWorkerPool(
 
     const results: Array<{ slide: CodeSlide; outputPath: string | null; error: string | null }> = new Array(slides.length);
     const slideTimes = new Array(slides.length).fill(0); // ms per slide
-    let taskIndex = 0;
-    let doneCount  = 0;
+    const slideStartTimes = new Array(slides.length).fill(0);
+    let nextTaskIndex = 0;
+    let completedCount = 0;
 
     const poolStart = performance.now();
 
     return new Promise<Array<{ slide: CodeSlide; outputPath: string | null; error: string | null }>>((resolve) => {
-        function assignNext(worker: Worker, workerIndex: number) {
-            if (taskIndex >= slides.length) {
-                worker.terminate();
+        function dispatchNext(worker: Worker) {
+            if (nextTaskIndex >= slides.length) {
                 return;
             }
+            const taskId = nextTaskIndex++;
+            slideStartTimes[taskId] = performance.now();
+            worker.postMessage({ snippet: slides[taskId], options, taskId });
+        }
 
-            const myIndex = taskIndex++;
-            const slide = slides[myIndex];
-            const slideStart = performance.now();
-
-            worker.postMessage({ snippet: slide, options, taskId: myIndex });
-
-            worker.onmessage = (event) => {
+        workers.forEach((worker, workerIndex) => {
+            worker.onmessage = (event: MessageEvent) => {
                 const { taskId, success, outputPath, error } = event.data;
-                const elapsed = (performance.now() - slideStart).toFixed(0);
+                if (taskId === undefined || taskId === null) return;
+
+                const elapsed = (performance.now() - (slideStartTimes[taskId] || poolStart)).toFixed(0);
                 slideTimes[taskId] = Number(elapsed);
 
                 results[taskId] = { slide: slides[taskId], outputPath: success ? outputPath : null, error: error || null };
 
                 if (success) {
                     console.log(`  ✓ [Worker ${workerIndex + 1}] slide-${slides[taskId].slide_number}.png  (${elapsed}ms)`);
-                    if (onSlideRendered) {
+                    if (onSlideRendered && outputPath) {
                         onSlideRendered(slides[taskId], outputPath);
                     }
                 } else {
                     console.error(`  ❌ [Worker ${workerIndex + 1}] slide-${slides[taskId].slide_number}: ${error}`);
                 }
 
-                doneCount++;
-                if (doneCount === slides.length) {
+                completedCount++;
+                if (completedCount === slides.length) {
                     const totalMs = (performance.now() - poolStart).toFixed(0);
-                    const avgMs   = (slideTimes.reduce((a, b) => a + b, 0) / slideTimes.length).toFixed(0);
+                    const avgMs   = (slideTimes.reduce((a, b) => a + b, 0) / (slideTimes.length || 1)).toFixed(0);
                     const fastestMs = Math.min(...slideTimes);
                     const slowestMs = Math.max(...slideTimes);
                     console.log(`\n📊 Render stats:`);
@@ -93,24 +94,23 @@ export async function renderWithWorkerPool(
                     workers.forEach(w => { try { w.terminate(); } catch (_) {} });
                     resolve(results);
                 } else {
-                    assignNext(worker, workerIndex);
+                    dispatchNext(worker);
                 }
             };
 
-            worker.onerror = (err) => {
+            worker.onerror = (err: ErrorEvent) => {
                 console.error(`  ❌ [Worker ${workerIndex + 1}] crashed:`, err.message);
-                results[myIndex] = { slide, outputPath: null, error: err.message };
-                doneCount++;
-                if (doneCount === slides.length) {
+                completedCount++;
+                if (completedCount === slides.length) {
                     workers.forEach(w => { try { w.terminate(); } catch (_) {} });
                     resolve(results);
                 } else {
-                    assignNext(worker, workerIndex);
+                    dispatchNext(worker);
                 }
             };
-        }
 
-        // Kick off all workers simultaneously
-        workers.forEach((worker, i) => assignNext(worker, i));
+            // Start initial task for this worker
+            dispatchNext(worker);
+        });
     });
 }

@@ -1,35 +1,29 @@
 
 import {
-    elementSelect,
     selectTextStyle,
-    translateX_and_translateY,
-    updateParagraphStyle
+    updateParagraphStyle,
+    unescapeText,
+    calculateTitleLayout
 } from "../../utils/text_utils.js";
-import { slideTypes, THEME_COLORS } from "../../constants/theme/index.js";
+import { THEME_COLORS } from "../../constants/theme/index.js";
 
 const buildNotesSlide = (slideId, slideElements, slideData) => {
     const requests = [];
     const { title, bullets } = slideData;
 
-    // 1. Text Config
-    const containerConfig = slideTypes["notes"].layout.container;
+    const cleanTitle = unescapeText(title || "Summary").trim();
+    const startX = 60;
+    const contentWidth = 600;
 
-    // --- Heading (Title) ---
-    const titleSizeData = elementSelect("title", title)[0];
-    const titleWidth = titleSizeData.size.width.magnitude;
-    const titleHeight = titleSizeData.size.height.magnitude;
+    // Dynamically calculate title lines and height for 42pt Poppins font
+    const { height: titleHeight } = calculateTitleLayout(cleanTitle, contentWidth, 42);
 
-    const titleTransform = translateX_and_translateY(
-        containerConfig,
-        {
-            elementWidth: titleWidth,
-            elementHeight: titleHeight,
-            totalContentHeight: titleHeight + (bullets ? 200 : 0) // Estimate
-        }
-    );
-
-    // Title down by 40pt (matching module_intro)
-    titleTransform.translateY += 40;
+    // Calculate vertical centering for summary slide to eliminate bottom void
+    const bulletCount = bullets?.length || 0;
+    const bulletsEstimatedHeight = Math.max(120, bulletCount * 34);
+    const gapBetweenTitleAndBullets = 16; // Equal 16pt gap after title ends
+    const totalStackHeight = titleHeight + gapBetweenTitleAndBullets + bulletsEstimatedHeight;
+    const startY = Math.max(60, Math.round((405 - totalStackHeight) / 2));
 
     requests.push({
         createShape: {
@@ -37,8 +31,8 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
             shapeType: "TEXT_BOX",
             elementProperties: {
                 pageObjectId: slideId,
-                size: titleSizeData.size,
-                transform: titleTransform,
+                size: { width: { magnitude: contentWidth, unit: "PT" }, height: { magnitude: titleHeight, unit: "PT" } },
+                transform: { scaleX: 1, scaleY: 1, translateX: startX, translateY: startY, unit: "PT" },
             },
         },
     });
@@ -46,7 +40,7 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
     requests.push({
         insertText: {
             objectId: slideElements.title,
-            text: title,
+            text: cleanTitle,
             insertionIndex: 0,
         },
     });
@@ -54,7 +48,7 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
     requests.push(selectTextStyle("title", slideElements.title));
     requests.push(updateParagraphStyle(slideElements.title, "START"));
 
-    // Apply accent color to title (Summary)
+    // Apply summary accent color to title
     requests.push({
         updateTextStyle: {
             objectId: slideElements.title,
@@ -68,21 +62,12 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
         }
     });
 
-
-    // --- Bullets (Notes) ---
+    // Bullets (Notes): Positioned below title
     if (bullets && bullets.length > 0) {
         const bulletElementId = slideElements.body || slideElements.title + "_notes";
-        const bulletText = bullets.join("\n");
-        // "Tight relationship between heading and body." -> Smaller gap.
-        const gap = 15; // Matching module_intro
-
-        const bulletTransform = {
-            scaleX: 1,
-            scaleY: 1,
-            translateX: titleTransform.translateX,
-            translateY: titleTransform.translateY + titleHeight + gap,
-            unit: "PT"
-        };
+        const bulletText = bullets.map(b => unescapeText(b).trim()).join("\n");
+        const bulletsY = startY + titleHeight + gapBetweenTitleAndBullets;
+        const bulletsHeight = bulletsEstimatedHeight + 20;
 
         requests.push({
             createShape: {
@@ -90,8 +75,8 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
                 shapeType: "TEXT_BOX",
                 elementProperties: {
                     pageObjectId: slideId,
-                    size: { width: { magnitude: 600, unit: "PT" }, height: { magnitude: 300, unit: "PT" } },
-                    transform: bulletTransform,
+                    size: { width: { magnitude: contentWidth, unit: "PT" }, height: { magnitude: bulletsHeight, unit: "PT" } },
+                    transform: { scaleX: 1, scaleY: 1, translateX: startX, translateY: bulletsY, unit: "PT" },
                 },
             },
         });
@@ -107,7 +92,6 @@ const buildNotesSlide = (slideId, slideElements, slideData) => {
         requests.push(selectTextStyle("body", bulletElementId));
         requests.push(updateParagraphStyle(bulletElementId, "START"));
 
-        // Bullet styling
         requests.push({
             createParagraphBullets: {
                 objectId: bulletElementId,
